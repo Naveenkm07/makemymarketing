@@ -1,0 +1,34 @@
+# Core SaaS stack for makemymarketing
+# This file mirrors the npm dependencies in web/package.json for reference
+
+# Frontend framework
+next==16.1.6
+react==19.2.3
+react-dom==19.2.3
+
+# Database ORM
+prisma==7.3.0
+@prisma/client==7.3.0
+
+# UI/Icons
+lucide-react==0.563.0
+tailwindcss==4
+
+# Tooling
+typescript==5
+eslint==9
+eslint-config-next==16.1.6
+@types/node==20
+@types/react==19
+@types/react-dom==19
+
+# Optional: Add these later for SaaS features
+# stripe (payments)
+# next-auth (authentication)
+# @next/bundle-analyzer (performance)
+# @vercel/analytics (analytics)
+# resend (emails)
+# zod (validation)
+# trpc (API layer)
+# @upstash/redis (rate limiting/cache)
+# @sentry/nextjs (error tracking)

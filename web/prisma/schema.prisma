@@ -22,6 +22,8 @@ model User {
   // Relationships
   screens       Screen[]  // For Owners
   bookings      Booking[] // For Advertisers
+  chatMessages  ChatMessage[]
+  chatThreads   ChatThread[] @relation("ChatThreadParticipants")
   
   // Profile details
   companyName   String?
@@ -43,6 +45,7 @@ model Screen {
   updatedAt       DateTime  @updatedAt
 
   bookings        Booking[]
+  availabilityBlocks ScreenAvailabilityBlock[]
 }
 
 // Campaign Booking (for Advertisers)
@@ -63,4 +66,38 @@ model Booking {
 
   // Payment info could be here or separate model
   paymentStatus String  @default("PENDING") // "PAID", "FAILED"
+}
+
+model ScreenAvailabilityBlock {
+  id        String   @id @default(cuid())
+  screenId  String
+  screen    Screen   @relation(fields: [screenId], references: [id])
+  startTime DateTime
+  endTime   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([screenId, startTime, endTime])
+}
+
+model ChatThread {
+  id           String        @id @default(cuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  participants User[]        @relation("ChatThreadParticipants")
+  messages     ChatMessage[]
+}
+
+model ChatMessage {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    ChatThread @relation(fields: [threadId], references: [id])
+  senderId  String
+  sender    User       @relation(fields: [senderId], references: [id])
+  content   String
+  createdAt DateTime   @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([senderId, createdAt])
 }
