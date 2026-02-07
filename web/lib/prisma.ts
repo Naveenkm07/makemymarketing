@@ -5,6 +5,21 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-export const prisma = global.prisma ?? new PrismaClient();
+const getPrisma = () => {
+  if (global.prisma) return global.prisma;
+  
+  // Only initialize PrismaClient if DATABASE_URL is available
+  if (!process.env.DATABASE_URL) {
+    // During build time, return a mock client that won't crash
+    console.warn('DATABASE_URL not found, Prisma client not initialized');
+    return null as any;
+  }
+  
+  const prisma = new PrismaClient();
+  if (process.env.NODE_ENV !== "production") {
+    global.prisma = prisma;
+  }
+  return prisma;
+};
 
-if (process.env.NODE_ENV !== "production") global.prisma = prisma;
+export const prisma = getPrisma();

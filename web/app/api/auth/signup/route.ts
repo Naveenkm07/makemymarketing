@@ -4,6 +4,11 @@ import { hashPassword } from "@/lib/auth";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Check if Prisma is available (not during build time)
+  if (!prisma) {
+    return Response.json({ ok: false, error: "Database not available" }, { status: 503 });
+  }
+
   const body = (await req.json()) as {
     email: string;
     password: string;
