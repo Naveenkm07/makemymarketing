@@ -31,7 +31,7 @@ export default function Home() {
           <nav className="space-x-6">
             <Link
               href="/login"
-              className="text-gray-200 hover:text-white transition-colors font-medium"
+              className="text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all font-medium drop-shadow-lg"
             >
               Log in
             </Link>
@@ -50,15 +50,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-bold mb-8">
-              <span className="bg-gradient-to-r from-gray-100 via-purple-100 to-indigo-100 bg-clip-text text-transparent drop-shadow-lg">
+              <span className="text-white drop-shadow-2xl">
                 Digital Advertising
               </span>
               <br />
-              <span className="bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-lg">
+              <span className="text-white drop-shadow-2xl">
                 Reimagined
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-100 max-w-4xl mx-auto mb-12 leading-relaxed drop-shadow-md">
+            <p className="text-xl md:text-2xl text-white max-w-4xl mx-auto mb-12 leading-relaxed drop-shadow-xl bg-black/20 backdrop-blur-sm rounded-lg p-4">
               Transform Bengaluru&apos;s digital landscape with our premium screen network. 
               Book campaigns instantly or monetize your displays with real-time analytics and 
               seamless management.
@@ -97,11 +97,11 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-20">
               <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                <span className="bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-lg">
+                <span className="text-white drop-shadow-2xl">
                   Why Choose AdDisplay BLR
                 </span>
               </h2>
-              <p className="text-xl text-gray-100 max-w-3xl mx-auto drop-shadow-md">
+              <p className="text-xl text-white max-w-3xl mx-auto drop-shadow-xl bg-black/20 backdrop-blur-sm rounded-lg p-4">
                 Experience the future of digital advertising with cutting-edge technology and unmatched reach
               </p>
             </div>
@@ -113,8 +113,8 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-100">Instant Booking</h3>
-                <p className="text-gray-200 leading-relaxed">
+                <h3 className="text-2xl font-bold mb-4 text-white drop-shadow-lg">Instant Booking</h3>
+                <p className="text-white leading-relaxed drop-shadow-md">
                   Reserve premium screen locations in seconds with our real-time availability system and instant confirmation.
                 </p>
               </div>
@@ -125,8 +125,8 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-100">Real-time Analytics</h3>
-                <p className="text-gray-200 leading-relaxed">
+                <h3 className="text-2xl font-bold mb-4 text-white drop-shadow-lg">Real-time Analytics</h3>
+                <p className="text-white leading-relaxed drop-shadow-md">
                   Track campaign performance with live metrics, audience insights, and detailed engagement reports.
                 </p>
               </div>
@@ -137,8 +137,8 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-100">City-wide Network</h3>
-                <p className="text-gray-200 leading-relaxed">
+                <h3 className="text-2xl font-bold mb-4 text-white drop-shadow-lg">City-wide Network</h3>
+                <p className="text-white leading-relaxed drop-shadow-md">
                   Access hundreds of premium locations across Bengaluru, from high-traffic commercial areas to exclusive venues.
                 </p>
               </div>
@@ -152,28 +152,28 @@ export default function Home() {
             <div className="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 backdrop-blur-sm border border-white/10 rounded-3xl p-12">
               <div className="grid md:grid-cols-4 gap-8 text-center">
                 <div>
-                  <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent mb-2 drop-shadow-lg">
+                  <div className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-2xl">
                     500+
                   </div>
-                  <div className="text-gray-100">Active Screens</div>
+                  <div className="text-white font-medium">Active Screens</div>
                 </div>
                 <div>
-                  <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent mb-2 drop-shadow-lg">
+                  <div className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-2xl">
                     2M+
                   </div>
-                  <div className="text-gray-100">Daily Impressions</div>
+                  <div className="text-white font-medium">Daily Impressions</div>
                 </div>
                 <div>
-                  <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent mb-2 drop-shadow-lg">
+                  <div className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-2xl">
                     50+
                   </div>
-                  <div className="text-gray-100">Premium Locations</div>
+                  <div className="text-white font-medium">Premium Locations</div>
                 </div>
                 <div>
-                  <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent mb-2 drop-shadow-lg">
+                  <div className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-2xl">
                     24/7
                   </div>
-                  <div className="text-gray-100">Real-time Support</div>
+                  <div className="text-white font-medium">Real-time Support</div>
                 </div>
               </div>
             </div>
@@ -184,11 +184,11 @@ export default function Home() {
         <section className="py-24 relative">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl md:text-5xl font-bold mb-8">
-              <span className="bg-gradient-to-r from-gray-100 via-purple-100 to-indigo-100 bg-clip-text text-transparent drop-shadow-lg">
+              <span className="text-white drop-shadow-2xl">
                 Ready to Transform Your Advertising?
               </span>
             </h2>
-            <p className="text-xl text-gray-100 mb-12 drop-shadow-md">
+            <p className="text-xl text-white mb-12 drop-shadow-xl bg-black/20 backdrop-blur-sm rounded-lg p-4">
               Join hundreds of businesses leveraging Bengaluru&apos;s most dynamic digital advertising platform
             </p>
             <Link
@@ -218,7 +218,7 @@ export default function Home() {
                 AdDisplay BLR
               </span>
             </div>
-            <p className="text-gray-100">
+            <p className="text-white drop-shadow-lg">
               &copy; 2026 AdDisplay BLR. All rights reserved.
             </p>
           </div>
