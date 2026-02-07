@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// User Accounts & Roles
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  role          String    // "ADVERTISER", "OWNER", "ADMIN"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  screens       Screen[]  // For Owners
+  bookings      Booking[] // For Advertisers
+  
+  // Profile details
+  companyName   String?
+  phoneNumber   String?
+}
+
+// Screen Management (for Owners)
+model Screen {
+  id              String    @id @default(cuid())
+  name            String
+  location        String
+  type            String    // "BILLBOARD", "MALL_DISPLAY", etc.
+  dimension       String?   // e.g. "1920x1080"
+  supportedFormats String?  // e.g. "IMAGE,VIDEO"
+  pricePerSlot    Float
+  ownerId         String
+  owner           User      @relation(fields: [ownerId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  bookings        Booking[]
+}
+
+// Campaign Booking (for Advertisers)
+model Booking {
+  id          String    @id @default(cuid())
+  advertiserId String
+  advertiser  User      @relation(fields: [advertiserId], references: [id])
+  screenId    String
+  screen      Screen    @relation(fields: [screenId], references: [id])
+  
+  startTime   DateTime
+  endTime     DateTime
+  status      String    // "PENDING", "APPROVED", "REJECTED", "COMPLETED"
+  totalPrice  Float
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Payment info could be here or separate model
+  paymentStatus String  @default("PENDING") // "PAID", "FAILED"
+}
