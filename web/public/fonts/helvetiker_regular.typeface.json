@@ -1,0 +1,15 @@
+{
+  "glyphs": {},
+  "familyName": "Helvetica",
+  "ascender": 1465,
+  "descender": -365,
+  "boundingBox": {
+    "xMin": -166,
+    "xMax": 2163,
+    "yMin": -455,
+    "yMax": 1885
+  },
+  "resolution": 1000,
+  "cssFontWeight": "normal",
+  "cssFontStyle": "normal"
+}
