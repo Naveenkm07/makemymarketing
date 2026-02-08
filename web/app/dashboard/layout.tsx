@@ -11,7 +11,7 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md flex flex-col">
         <div className="h-16 flex items-center justify-center border-b">
-          <Link href="/" className="text-xl font-bold text-indigo-600">AdDisplay BLR</Link>
+          <Link href="/" className="text-xl font-bold text-indigo-600">MakeMyMarketing</Link>
         </div>
         <nav className="flex-1 p-4 space-y-2">
            {/* Navigation would be dynamic based on role, but simpler here */}

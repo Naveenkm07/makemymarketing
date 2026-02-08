@@ -6,7 +6,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="text-2xl font-bold text-indigo-600">AdDisplay BLR</div>
+          <div className="text-2xl font-bold text-indigo-600">MakeMyMarketing</div>
           <nav className="space-x-4">
             <Link href="/login" className="text-gray-500 hover:text-gray-900">Log in</Link>
             <Link href="/signup" className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Sign up</Link>
@@ -40,7 +40,7 @@ export default function Home() {
 
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-400">&copy; 2026 AdDisplay BLR. All rights reserved.</p>
+          <p className="text-center text-gray-400">&copy; 2026 MakeMyMarketing. All rights reserved.</p>
         </div>
       </footer>
     </div>

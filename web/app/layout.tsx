@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AdDisplay BLR",
-  description: "Digital display advertising platform for Bengaluru",
+  title: "MakeMyMarketing",
+  description: "Digital marketing platform for Bengaluru",
 };
 
 export default function RootLayout({
