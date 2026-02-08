@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const prisma = getPrisma();
   const body = (await req.json()) as {
     participantIds: string[];
   };

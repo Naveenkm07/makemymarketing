@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { publish } from "@/lib/realtimeBus";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const prisma = getPrisma();
   const body = (await req.json()) as {
     advertiserId: string;
     screenId: string;
