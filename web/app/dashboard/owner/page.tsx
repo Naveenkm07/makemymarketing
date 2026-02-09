@@ -52,6 +52,11 @@ export default function OwnerDashboard() {
   const [chatLoading, setChatLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string; name: string | null; role: string } | null>(null);
+
   async function load() {
     setError(null);
     try {
@@ -198,9 +203,39 @@ export default function OwnerDashboard() {
     }
   }
 
+  async function loadAnalytics() {
+    setAnalyticsLoading(true);
+    try {
+      const res = await fetch("/api/analytics", { cache: "no-store" });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        setAnalytics(json.data);
+      } else {
+        setAnalytics(null);
+      }
+    } catch {
+      setAnalytics(null);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }
+
+  async function loadCurrentUser() {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        setCurrentUser(json.user);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     void load();
     void loadChatThreads();
+    void loadCurrentUser();
   }, []);
 
   async function createScreen(e: React.FormEvent) {
@@ -269,6 +304,15 @@ export default function OwnerDashboard() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Owner Dashboard</h1>
         <div className="flex gap-3">
+          <button
+            onClick={() => {
+              setShowAnalytics(true);
+              void loadAnalytics();
+            }}
+            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center"
+          >
+            Analytics
+          </button>
           <button
             onClick={() => setShowChat(true)}
             className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center"
@@ -566,12 +610,12 @@ export default function OwnerDashboard() {
                           <li
                             key={msg.id}
                             className={`text-sm ${
-                              msg.senderId === data?.owner.id ? "text-right" : "text-left"
+                              msg.senderId === currentUser?.id ? "text-right" : "text-left"
                             }`}
                           >
                             <div
                               className={`inline-block px-3 py-2 rounded-lg ${
-                                msg.senderId === data?.owner.id
+                                msg.senderId === currentUser?.id
                                   ? "bg-indigo-100 text-indigo-900"
                                   : "bg-white text-gray-900"
                               }`}
@@ -606,6 +650,88 @@ export default function OwnerDashboard() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {showAnalytics && (
+        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">Analytics</h2>
+            <button
+              onClick={() => setShowAnalytics(false)}
+              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+
+          {analyticsLoading ? (
+            <div className="text-sm text-gray-500">Loading analytics...</div>
+          ) : analytics ? (
+            <div className="mt-4 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded">
+                  <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ₹{Math.round(analytics.totalRevenue).toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded">
+                  <p className="text-sm font-medium text-gray-500">Total Bookings</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics.totalBookings}</p>
+                </div>
+              </div>
+
+              {analytics.revenueByScreen && analytics.revenueByScreen.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Revenue by Screen</h3>
+                  <ul className="space-y-2">
+                    {analytics.revenueByScreen.map((item: any, i: number) => (
+                      <li key={i} className="flex justify-between bg-gray-50 p-2 rounded">
+                        <span className="text-sm font-medium text-gray-900">{item.screenName}</span>
+                        <span className="text-sm text-gray-600">
+                          ₹{Math.round(item.revenue).toLocaleString("en-IN")} ({item.bookingsCount} bookings)
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {analytics.revenueOverTime && analytics.revenueOverTime.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Revenue Over Time</h3>
+                  <div className="h-40 bg-gray-50 rounded p-2">
+                    <svg viewBox="0 0 400 100" className="w-full h-full">
+                      {analytics.revenueOverTime.map((item: any, i: number) => {
+                        const max = Math.max(...analytics.revenueOverTime.map((d: any) => d.revenue));
+                        const x = (i / (analytics.revenueOverTime.length - 1)) * 380 + 10;
+                        const y = 90 - (item.revenue / max) * 70;
+                        return (
+                          <g key={i}>
+                            <circle cx={x} cy={y} r={3} fill="#10b981" />
+                            {i > 0 && (
+                              <line
+                                x1={(i - 1) / (analytics.revenueOverTime.length - 1) * 380 + 10}
+                                y1={90 - (analytics.revenueOverTime[i - 1].revenue / max) * 70}
+                                x2={x}
+                                y2={y}
+                                stroke="#10b981"
+                                strokeWidth={2}
+                              />
+                            )}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">No analytics data available.</div>
+          )}
         </div>
       )}
 
