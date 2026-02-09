@@ -9,6 +9,7 @@ import {
   BarChart3,
   Building2,
   CircleDollarSign,
+  ClipboardList,
   Clock,
   FileCheck2,
   Layers,
@@ -18,6 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
   type LucideIcon,
+  Monitor,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -140,18 +142,19 @@ function Hero() {
               className="mt-8 flex flex-col gap-3 sm:flex-row"
             >
               <Link
-                href="/dashboard/advertiser"
-                className="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.99]"
-                style={{ background: primary }}
+                href="/signup?role=ADVERTISER"
+                className="inline-flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-white"
               >
-                Book Ads Now
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ClipboardList className="h-5 w-5" style={{ color: primary }} />
+                I&apos;m an Advertiser
               </Link>
               <Link
-                href="/dashboard/owner"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+                href="/signup?role=OWNER"
+                className="inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.99]"
+                style={{ background: primary }}
               >
-                List Your Screen
+                <Monitor className="h-5 w-5" />
+                I&apos;m a Screen Owner
               </Link>
             </motion.div>
 

@@ -22,6 +22,8 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim();
+  const start = url.searchParams.get("start");
+  const end = url.searchParams.get("end");
 
   const where = q
     ? {
@@ -33,9 +35,33 @@ export async function GET(req: Request) {
       }
     : {};
 
+  // If date filters are provided, exclude screens that have availability blocks overlapping the requested range
+  let screenIdsToExclude: string[] = [];
+  if (start || end) {
+    const startDate = start ? new Date(start) : undefined;
+    const endDate = end ? new Date(end) : undefined;
+    const blocks = await prisma.screenAvailabilityBlock.findMany({
+      where: {
+        OR: [
+          // Block starts before requested end and ends after requested start -> overlap
+          {
+            startTime: { lte: endDate ?? new Date("2100-01-01") },
+            endTime: { gte: startDate ?? new Date("1970-01-01") },
+          },
+        ],
+      },
+      select: { screenId: true },
+    });
+    screenIdsToExclude = [...new Set(blocks.map((b) => b.screenId))];
+  }
+
+  const finalWhere = screenIdsToExclude.length > 0
+    ? { ...where, id: { notIn: screenIdsToExclude } }
+    : where;
+
   const [inventory, myBookingsAgg] = await Promise.all([
     prisma.screen.findMany({
-      where,
+      where: finalWhere,
       orderBy: { createdAt: "desc" },
       take: 30,
       select: {

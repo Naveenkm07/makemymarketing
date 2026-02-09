@@ -10,10 +10,14 @@ export function getPrisma() {
 
   // Create lazily so builds that import route modules don't initialize Prisma.
   const url = process.env.DATABASE_URL ?? "file:./dev.db";
-  const prisma = new PrismaClient(
-    // Prisma v7 runtime expects a valid options object; typings can lag depending on generation.
-    { datasourceUrl: url } as any
-  );
+  
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url,
+      },
+    },
+  } as any);
 
   if (process.env.NODE_ENV !== "production") {
     global.prisma = prisma;

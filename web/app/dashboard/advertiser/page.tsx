@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Search } from "lucide-react";
+import { Search, MapPin, BarChart3, IndianRupee } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type InventoryItem = {
@@ -9,11 +9,7 @@ type InventoryItem = {
   location: string;
   type: string;
   pricePerSlot: number;
-  owner: {
-    id: string;
-    name: string | null;
-    companyName: string | null;
-  };
+  owner: { id: string; name: string | null; companyName: string | null };
 };
 
 type AdvertiserDashboardResponse = {
@@ -25,18 +21,66 @@ type AdvertiserDashboardResponse = {
   inventory: InventoryItem[];
 };
 
+type Campaign = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  budget: number;
+  status: string;
+};
+
+type CampaignListResponse = {
+  ok: true;
+  campaigns: Campaign[];
+};
+
 export default function AdvertiserDashboard() {
-  const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AdvertiserDashboardResponse | null>(null);
+  const [q, setQ] = useState("");
+
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
+  const [campaignLoading, setCampaignLoading] = useState(true);
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [campaignName, setCampaignName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [budget, setBudget] = useState("");
+
+  const [showBook, setShowBook] = useState(false);
+  const [bookingScreen, setBookingScreen] = useState<InventoryItem | null>(null);
+  const [bookingStart, setBookingStart] = useState("");
+  const [bookingEnd, setBookingEnd] = useState("");
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string; name: string | null; role: string } | null>(null);
+  const [filterStart, setFilterStart] = useState("");
+  const [filterEnd, setFilterEnd] = useState("");
+
+  const [showChat, setShowChat] = useState(false);
+  const [chatThreads, setChatThreads] = useState<any[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessageInput, setChatMessageInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   async function load(query: string) {
     setError(null);
     try {
-      const url = query.trim()
-        ? `/api/dashboard/advertiser?q=${encodeURIComponent(query.trim())}`
-        : "/api/dashboard/advertiser";
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("q", query.trim());
+      if (filterStart) params.set("start", filterStart);
+      if (filterEnd) params.set("end", filterEnd);
+      const url = `/api/dashboard/advertiser?${params.toString()}`;
       const res = await fetch(url, { cache: "no-store" });
       const json = (await res.json()) as any;
       if (!res.ok || !json?.ok) {
@@ -53,24 +97,220 @@ export default function AdvertiserDashboard() {
     }
   }
 
+  async function loadCampaigns() {
+    setCampaignError(null);
+    try {
+      const res = await fetch("/api/campaigns", { cache: "no-store" });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) {
+        setCampaignError(json?.error ?? "Failed to load campaigns");
+        setCampaigns([]);
+        return;
+      }
+      const d = json as CampaignListResponse;
+      setCampaigns(d.campaigns ?? []);
+    } catch {
+      setCampaignError("Failed to load campaigns");
+      setCampaigns([]);
+    } finally {
+      setCampaignLoading(false);
+    }
+  }
+
+  async function loadCurrentUser() {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        setCurrentUser(json.user);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function loadChatThreads() {
+    setChatLoading(true);
+    try {
+      const res = await fetch("/api/chat/threads", { cache: "no-store" });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        setChatThreads(json.threads ?? []);
+      } else {
+        setChatThreads([]);
+      }
+    } catch {
+      setChatThreads([]);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  async function openChatThread(threadId: string) {
+    setSelectedThreadId(threadId);
+    setChatMessages([]);
+    try {
+      const res = await fetch(`/api/messages?threadId=${encodeURIComponent(threadId)}`, { cache: "no-store" });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        setChatMessages(json.messages ?? []);
+      }
+    } catch {
+      setChatMessages([]);
+    }
+  }
+
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedThreadId || !chatMessageInput.trim()) return;
+    setSendingMessage(true);
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          threadId: selectedThreadId,
+          content: chatMessageInput.trim(),
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        setChatMessageInput("");
+        await openChatThread(selectedThreadId);
+        await loadChatThreads();
+      } else {
+        setCampaignError(json?.error ?? "Failed to send message");
+      }
+    } catch {
+      setCampaignError("Failed to send message");
+    } finally {
+      setSendingMessage(false);
+    }
+  }
+
+  async function startChatWithOwner(screenId: string) {
+    if (!currentUser) return;
+    try {
+      const res = await fetch("/api/chat/threads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          screenId,
+          initialMessage: "Hi, I’m interested in this screen.",
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (res.ok && json?.ok) {
+        await loadChatThreads();
+        setSelectedThreadId(json.thread.id);
+        await openChatThread(json.thread.id);
+        setShowChat(true);
+      } else {
+        setCampaignError(json?.error ?? "Failed to start chat");
+      }
+    } catch {
+      setCampaignError("Failed to start chat");
+    }
+  }
+
+  async function createCampaign(e: React.FormEvent) {
+    e.preventDefault();
+    setCampaignError(null);
+    setCreating(true);
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: campaignName,
+          startDate,
+          endDate,
+          budget: Number(budget),
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) {
+        setCampaignError(json?.error ?? "Failed to create campaign");
+        return;
+      }
+
+      setShowCreate(false);
+      setCampaignName("");
+      setStartDate("");
+      setEndDate("");
+      setBudget("");
+      await loadCampaigns();
+    } catch {
+      setCampaignError("Failed to create campaign");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function openBooking(screen: InventoryItem) {
+    setBookingScreen(screen);
+    setBookingStart("");
+    setBookingEnd("");
+    setShowBook(true);
+  }
+
+  async function submitBooking(e: React.FormEvent) {
+    e.preventDefault();
+    if (!bookingScreen || !currentUser) return;
+    setCampaignError(null);
+    setBookingLoading(true);
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          advertiserId: currentUser.id,
+          screenId: bookingScreen.id,
+          startTime: bookingStart,
+          endTime: bookingEnd,
+          totalPrice: bookingScreen.pricePerSlot,
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) {
+        setCampaignError(json?.error ?? "Failed to book screen");
+        return;
+      }
+
+      setShowBook(false);
+      setBookingScreen(null);
+      setBookingStart("");
+      setBookingEnd("");
+    } catch {
+      setCampaignError("Failed to book screen");
+    } finally {
+      setBookingLoading(false);
+    }
+  }
+
   useEffect(() => {
     const t = setTimeout(() => {
       void load(q);
     }, 250);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [q, filterStart, filterEnd]);
 
   useEffect(() => {
     void load("");
+    void loadCampaigns();
+    void loadCurrentUser();
+    void loadChatThreads();
   }, []);
 
   useEffect(() => {
-    const es = new EventSource("/api/realtime?topics=bookings,availability");
+    const es = new EventSource("/api/realtime?topics=bookings,availability,chat");
     const onEvt = () => {
       void load(q);
+      void loadChatThreads();
     };
     es.addEventListener("bookings", onEvt);
     es.addEventListener("availability", onEvt);
+    es.addEventListener("chat", onEvt);
     return () => {
       try {
         es.close();
@@ -86,14 +326,279 @@ export default function AdvertiserDashboard() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Advertiser Dashboard</h1>
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
-          Create New Campaign
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowChat(true)}
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center"
+          >
+            Chat
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+          >
+            Create New Campaign
+          </button>
+        </div>
       </div>
+
+      {showCreate ? (
+        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">Create Campaign</h2>
+            <button
+              onClick={() => setShowCreate(false)}
+              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+
+          <form onSubmit={createCampaign} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Campaign name</label>
+              <input
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Launch Week Offer"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start date</label>
+              <input
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                type="date"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">End date</label>
+              <input
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                type="date"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Budget (₹)</label>
+              <input
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                type="number"
+                min={1}
+                step="1"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="50000"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2 flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={creating}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {creating ? "Creating..." : "Create Campaign"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {campaignError && (
+        <div className="mb-4 bg-red-50 text-red-700 p-4 rounded-lg text-sm">
+          {campaignError}
+        </div>
+      )}
+
+      {showBook && bookingScreen ? (
+        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">Book Screen</h2>
+            <button
+              onClick={() => setShowBook(false)}
+              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-900">Screen: {bookingScreen.name}</p>
+              <p className="text-sm text-gray-500">{bookingScreen.location}</p>
+              <p className="text-sm text-gray-500">Rate: ₹{Math.round(bookingScreen.pricePerSlot).toLocaleString("en-IN")}/slot</p>
+            </div>
+
+            <form onSubmit={submitBooking} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Start Date & Time</label>
+                <input
+                  value={bookingStart}
+                  onChange={(e) => setBookingStart(e.target.value)}
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">End Date & Time</label>
+                <input
+                  value={bookingEnd}
+                  onChange={(e) => setBookingEnd(e.target.value)}
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2 flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBook(false)}
+                  className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bookingLoading}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {bookingLoading ? "Booking..." : "Book Now"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {showChat && (
+        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">Messages</h2>
+            <button
+              onClick={() => setShowChat(false)}
+              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="md:col-span-1">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Conversations</h3>
+              {chatLoading ? (
+                <div className="text-sm text-gray-500">Loading...</div>
+              ) : chatThreads.length === 0 ? (
+                <div className="text-sm text-gray-500">No conversations yet.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {chatThreads.map((thread) => (
+                    <li key={thread.id}>
+                      <button
+                        onClick={() => void openChatThread(thread.id)}
+                        className={`w-full text-left p-2 rounded border ${
+                          selectedThreadId === thread.id
+                            ? "bg-indigo-50 border-indigo-300"
+                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="text-sm font-medium text-gray-900">
+                          {thread.participants.find((p: any) => p.id !== currentUser?.id)?.name ||
+                            thread.participants.find((p: any) => p.id !== currentUser?.id)?.companyName}
+                        </div>
+                        {thread.messages[0] && (
+                          <div className="text-xs text-gray-500 truncate">
+                            {thread.messages[0].content}
+                          </div>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              {selectedThreadId ? (
+                <>
+                  <div className="border rounded p-4 h-64 overflow-y-auto bg-gray-50 mb-3">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-sm text-gray-500">No messages yet.</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {chatMessages.map((msg) => (
+                          <li
+                            key={msg.id}
+                            className={`text-sm ${
+                              msg.senderId === currentUser?.id ? "text-right" : "text-left"
+                            }`}
+                          >
+                            <div
+                              className={`inline-block px-3 py-2 rounded-lg ${
+                                msg.senderId === currentUser?.id
+                                  ? "bg-indigo-100 text-indigo-900"
+                                  : "bg-white text-gray-900"
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <form onSubmit={sendMessage} className="flex gap-2">
+                    <input
+                      value={chatMessageInput}
+                      onChange={(e) => setChatMessageInput(e.target.value)}
+                      placeholder="Type a message..."
+                      className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendingMessage}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-60"
+                    >
+                      {sendingMessage ? "Sending..." : "Send"}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="text-sm text-gray-500">Select a conversation to view messages.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Find Screens</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-4 mb-4 md:flex-row md:gap-4">
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -102,13 +607,28 @@ export default function AdvertiserDashboard() {
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Search by location (e.g. Koramangala)"
+              placeholder="Search by location, screen name, or type..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Filters
-          </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Available From</label>
+            <input
+              type="datetime-local"
+              value={filterStart}
+              onChange={(e) => setFilterStart(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Available Until</label>
+            <input
+              type="datetime-local"
+              value={filterEnd}
+              onChange={(e) => setFilterEnd(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
         </div>
       </div>
 
@@ -118,30 +638,116 @@ export default function AdvertiserDashboard() {
         </div>
       ) : null}
 
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Available Inventory</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Bookings</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {loading ? "—" : (data?.stats.totalBookings ?? 0)}
+              </p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-full">
+              <BarChart3 className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Spend</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {loading ? "—" : `₹${Math.round(data?.stats.totalSpend ?? 0).toLocaleString("en-IN")}`}
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-full">
+              <IndianRupee className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 className="text-lg font-medium text-gray-900 mb-4">Your Campaigns</h2>
+      <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mb-8">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campaign</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {campaignLoading ? (
+              <tr>
+                <td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>
+                  Loading campaigns...
+                </td>
+              </tr>
+            ) : campaigns.length > 0 ? (
+              campaigns.map((c) => (
+                <tr key={c.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {c.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(c.startDate).toLocaleDateString()} – {new Date(c.endDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ₹{Math.round(c.budget).toLocaleString("en-IN")}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      {c.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>
+                  No campaigns yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="text-lg font-medium text-gray-900 mb-4">Available Screens</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full text-sm text-gray-500">Loading...</div>
+          <div className="col-span-full text-sm text-gray-500">Loading screens...</div>
         ) : inventory.length > 0 ? (
           inventory.map((s) => (
-            <div key={s.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="h-48 bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-400">Screen Image Preview</span>
-              </div>
-              <div className="p-4">
-                <h3 className="text-lg font-medium text-gray-900">{s.name}</h3>
-                <div className="flex items-center mt-1 text-sm text-gray-500">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  {s.location}
-                </div>
-                <div className="mt-2 text-xs text-gray-500">{s.type}</div>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-indigo-600 font-bold">
-                    ₹{Math.round(s.pricePerSlot).toLocaleString("en-IN")}
-                    <span className="text-gray-500 font-normal text-xs">/slot</span>
-                  </span>
-                  <button className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-100">
-                    Book Now
+            <div key={s.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-base font-medium text-gray-900">{s.name}</h3>
+                  <div className="flex items-center mt-1 text-sm text-gray-500">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    {s.location}
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">{s.type}</div>
+                  <div className="mt-4 flex justify-between items-center">
+                    <span className="text-indigo-600 font-bold">
+                      ₹{Math.round(s.pricePerSlot).toLocaleString("en-IN")}
+                      <span className="text-gray-500 font-normal text-xs">/slot</span>
+                    </span>
+                    <button
+                      onClick={() => openBooking(s)}
+                      className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-100"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => void startChatWithOwner(s.id)}
+                    className="mt-2 w-full text-sm bg-gray-50 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-100"
+                  >
+                    Chat with Owner
                   </button>
                 </div>
               </div>

@@ -1,13 +1,27 @@
+"use client";
+
 import { Search, MapPin } from "lucide-react";
 
 export default function AdvertiserDashboard() {
+  const handleCreateCampaign = () => {
+    // For now, let's show an alert. In a real app, this would open a modal or navigate to a form.
+    alert("Campaign creation form will be implemented here! This would typically open a modal or navigate to /campaigns/create");
+  };
+
+  const handleBookNow = (screenName: string) => {
+    alert(`Booking screen: ${screenName}. This would open a booking form or navigate to /book/${screenName}`);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
           Advertiser Dashboard
         </h1>
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+        <button 
+          onClick={handleCreateCampaign}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+        >
           Create New Campaign
         </button>
       </div>
@@ -58,7 +72,10 @@ export default function AdvertiserDashboard() {
                     /day
                   </span>
                 </span>
-                <button className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-100">
+                <button 
+                  onClick={() => handleBookNow("Forum Mall Entrance")}
+                  className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-100"
+                >
                   Book Now
                 </button>
               </div>
