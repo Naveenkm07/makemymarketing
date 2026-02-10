@@ -204,25 +204,37 @@ function CTABackground() {
 
 // Floating Particles Component
 function FloatingParticles() {
-  const [randomValues] = useState(() => 
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Generate stable values only on client
+  const randomValues = useMemo(() => 
     [...Array(20)].map(() => ({
       left: Math.random() * 100,
       top: Math.random() * 100,
       xOffset: Math.random() * 20 - 10,
       duration: 8 + Math.random() * 4,
       delay: Math.random() * 5,
-    }))
+    })),
+    []
   );
   
-  const [lineValues] = useState(() =>
+  const lineValues = useMemo(() =>
     [...Array(8)].map(() => ({
       width: 20 + Math.random() * 30,
       left: Math.random() * 70,
       top: 10 + Math.random() * 80,
       duration: 6 + Math.random() * 4,
       delay: Math.random() * 3,
-    }))
+    })),
+    []
   );
+  
+  // Don't render during SSR to avoid hydration mismatch
+  if (!isClient) return null;
   
   return (
     <>
