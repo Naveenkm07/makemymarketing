@@ -1,10 +1,36 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+// Memoized floating particles with stable positions
+const FloatingParticles = memo(function FloatingParticles() {
+  const particles = React.useMemo(() => {
+    return [...Array(40)].map((_, i) => ({
+      id: i,
+      left: 5 + (i * 47) % 90,
+      top: 10 + (i * 23) % 80,
+      duration: 8 + (i * 31) % 4,
+      delay: (i * 17) % 6,
+    }));
+  }, []);
+
+  return (
+    <>
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute w-1 h-1 rounded-full bg-blue-400/40"
+          style={{ left: `${p.left}%`, top: `${p.top}%` }}
+          animate={{ y: [0, -60, 0], opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5] }}
+          transition={{ duration: p.duration, repeat: Infinity, delay: p.delay }}
+        />
+      ))}
+    </>
+  );
+});
+
 export default function AdvertiserSignup() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,19 +42,7 @@ export default function AdvertiserSignup() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 2 - 1,
-        y: (e.clientY / window.innerHeight) * 2 - 1,
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
@@ -59,9 +73,9 @@ export default function AdvertiserSignup() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -112,7 +126,7 @@ export default function AdvertiserSignup() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [formData, isLoading]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 text-white overflow-hidden">
@@ -121,42 +135,8 @@ export default function AdvertiserSignup() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(59,130,246,0.15),_transparent_70%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(34,211,238,0.1),_transparent_70%)]" />
 
-        {/* Floating Particles */}
-        {[...Array(40)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-blue-400/40"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -60, 0],
-              opacity: [0, 1, 0],
-              scale: [0.5, 1.5, 0.5],
-            }}
-            transition={{
-              duration: 8 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 6,
-            }}
-          />
-        ))}
+        <FloatingParticles />
       </div>
-
-      {/* Interactive Mouse Glow */}
-      <motion.div
-        className="absolute w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"
-        animate={{
-          x: mousePosition.x * 40,
-          y: mousePosition.y * 40,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 30,
-          damping: 20,
-        }}
-      />
 
       {/* Header */}
       <header className="relative z-10 border-b border-white/10 backdrop-blur-sm bg-black/20">
