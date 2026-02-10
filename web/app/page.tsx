@@ -50,11 +50,25 @@ function ScreenPanel({ position }: { position: [number, number, number] }) {
   );
 }
 
-// CTA Background with 3D Elements
+// CTA Background with 3D Elements - Client Only
 function CTABackground() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isClient, setIsClient] = useState(false);
+  
+  // Generate stable random values
+  const [randomValues] = useState(() => 
+    [...Array(6)].map(() => ({
+      width: 60 + Math.random() * 80,
+      height: 40 + Math.random() * 60,
+      left: 10 + Math.random() * 80,
+      top: 10 + Math.random() * 80,
+      rotate: Math.random() * 10 - 5,
+      duration: 15 + Math.random() * 10,
+    }))
+  );
   
   useEffect(() => {
+    setIsClient(true);
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: (e.clientX / window.innerWidth) * 2 - 1,
@@ -66,27 +80,29 @@ function CTABackground() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
   
+  if (!isClient) return null;
+  
   return (
     <>
       {/* Floating Digital Billboards */}
-      {[...Array(6)].map((_, i) => (
+      {randomValues.map((val, i) => (
         <motion.div
           key={`billboard-${i}`}
           className="absolute rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 backdrop-blur-sm"
           style={{
-            width: `${60 + Math.random() * 80}px`,
-            height: `${40 + Math.random() * 60}px`,
-            left: `${10 + Math.random() * 80}%`,
-            top: `${10 + Math.random() * 80}%`,
+            width: `${val.width}px`,
+            height: `${val.height}px`,
+            left: `${val.left}%`,
+            top: `${val.top}%`,
           }}
           animate={{
             x: [0, mousePosition.x * 20, 0],
             y: [0, mousePosition.y * 20, 0],
-            rotate: [0, Math.random() * 10 - 5, 0],
+            rotate: [0, val.rotate, 0],
             opacity: [0.3, 0.7, 0.3],
           }}
           transition={{
-            duration: 15 + Math.random() * 10,
+            duration: val.duration,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -188,25 +204,35 @@ function CTABackground() {
 
 // Floating Particles Component
 function FloatingParticles() {
+  const [randomValues] = useState(() => 
+    [...Array(20)].map(() => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      xOffset: Math.random() * 20 - 10,
+      duration: 8 + Math.random() * 4,
+      delay: Math.random() * 5,
+    }))
+  );
+  
   return (
     <>
-      {[...Array(20)].map((_, i) => (
+      {randomValues.map((val, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 rounded-full bg-blue-400/30"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: `${val.left}%`,
+            top: `${val.top}%`,
           }}
           animate={{
             y: [0, -100, 0],
             opacity: [0, 1, 0],
-            x: [0, Math.random() * 20 - 10, 0],
+            x: [0, val.xOffset, 0],
           }}
           transition={{
-            duration: 8 + Math.random() * 4,
+            duration: val.duration,
             repeat: Infinity,
-            delay: Math.random() * 5,
+            delay: val.delay,
             ease: "linear",
           }}
         />
@@ -223,7 +249,7 @@ function FloatingParticles() {
             top: `${10 + Math.random() * 80}%`,
           }}
           animate={{
-            x: [-50, window.innerWidth],
+            x: [-50, 1000],
             opacity: [0, 0.5, 0],
           }}
           transition={{
@@ -875,9 +901,11 @@ function City() {
     <group
       ref={group}
       onPointerMove={(e) => {
-        const x = (e.clientX / window.innerWidth) * 2 - 1;
-        const y = (e.clientY / window.innerHeight) * 2 - 1;
-        pointer.current = { x, y };
+        if (typeof window !== 'undefined') {
+          const x = (e.clientX / window.innerWidth) * 2 - 1;
+          const y = (e.clientY / window.innerHeight) * 2 - 1;
+          pointer.current = { x, y };
+        }
       }}
     >
       {[...Array(24)].map((_, i) => {
@@ -918,12 +946,14 @@ export default function Home() {
   const headerRef = useRef<HTMLHeadElement>(null);
   
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    if (typeof window !== 'undefined') {
+      const handleScroll = () => {
+        setIsScrolled(window.scrollY > 10);
+      };
+      
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
   }, []);
   
   return (
