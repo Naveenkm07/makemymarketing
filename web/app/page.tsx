@@ -214,6 +214,16 @@ function FloatingParticles() {
     }))
   );
   
+  const [lineValues] = useState(() =>
+    [...Array(8)].map(() => ({
+      width: 20 + Math.random() * 30,
+      left: Math.random() * 70,
+      top: 10 + Math.random() * 80,
+      duration: 6 + Math.random() * 4,
+      delay: Math.random() * 3,
+    }))
+  );
+  
   return (
     <>
       {randomValues.map((val, i) => (
@@ -239,23 +249,23 @@ function FloatingParticles() {
       ))}
       
       {/* Data Stream Lines */}
-      {[...Array(8)].map((_, i) => (
+      {lineValues.map((val, i) => (
         <motion.div
           key={`line-${i}`}
           className="absolute h-px bg-gradient-to-r from-blue-400/20 to-purple-400/20"
           style={{
-            width: `${20 + Math.random() * 30}%`,
-            left: `${Math.random() * 70}%`,
-            top: `${10 + Math.random() * 80}%`,
+            width: `${val.width}%`,
+            left: `${val.left}%`,
+            top: `${val.top}%`,
           }}
           animate={{
             x: [-50, 1000],
             opacity: [0, 0.5, 0],
           }}
           transition={{
-            duration: 6 + Math.random() * 4,
+            duration: val.duration,
             repeat: Infinity,
-            delay: Math.random() * 3,
+            delay: val.delay,
             ease: "linear",
           }}
         />
