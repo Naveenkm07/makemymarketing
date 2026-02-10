@@ -2,12 +2,13 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Html, OrbitControls } from "@react-three/drei";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import * as THREE from "three";
 import Link from "next/link";
+import Hero3D from "./components/Hero3D";
 
 function NeonBuilding({ position, height, color }: { position: [number, number, number]; height: number; color: string }) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -1150,34 +1151,7 @@ export default function Home() {
         </motion.div>
       </header>
 
-      <section className="relative pt-24 min-h-[90vh] flex items-center" style={{
-        paddingTop: isScrolled ? '4.5rem' : '6rem',
-        transition: 'padding-top 0.3s ease'
-      }}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.15),_transparent_60%),radial-gradient(ellipse_at_bottom,_rgba(168,139,250,0.12),_transparent_60%)]" />
-        <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-12 items-center w-full">
-          <div className="relative z-10 max-w-xl">
-            <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
-              Turn Digital Screens into <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Profitable Ad Spaces</span>
-            </motion.h1>
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="mt-6 text-lg text-white/70 leading-relaxed">
-              Manage bookings, campaigns, and payments seamlessly on Bengaluru’s leading DOOH platform.
-            </motion.p>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }} className="mt-10 flex flex-wrap gap-4">
-              <Link href="/dashboard/advertiser" className="px-8 py-4 rounded-lg bg-cyan-600 text-white font-semibold shadow-[0_0_20px_rgba(8,145,178,0.5)] hover:shadow-[0_0_30px_rgba(8,145,178,0.7)] hover:bg-cyan-500 transition-all">Run Your Ads</Link>
-              <Link href="/dashboard/owner" className="px-8 py-4 rounded-lg bg-purple-600 text-white font-semibold shadow-[0_0_20px_rgba(147,51,234,0.5)] hover:shadow-[0_0_30px_rgba(147,51,234,0.7)] hover:bg-purple-500 transition-all">Monetize Your Screens</Link>
-            </motion.div>
-          </div>
-          <div className="relative h-[520px] rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-            {isClient && (
-              <Canvas camera={{ position: [8, 6, 10], fov: 40 }}>
-                <City />
-                <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.4} />
-              </Canvas>
-            )}
-          </div>
-        </div>
-      </section>
+      <Hero3D />
 
       {/* How It Works Section - Premium 3D Version */}
       <section className="relative py-32 overflow-hidden">
