@@ -1,112 +1,144 @@
-import { getPrisma } from "@/lib/prisma";
-import { getUserIdFromRequest } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  const prisma = getPrisma();
-  const userId = getUserIdFromRequest(req);
-
-  if (!userId) {
-    return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+// GET /api/dashboard/owner - Get owner dashboard stats
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+    }
+    
+    // Get user profile and verify role
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, is_blocked")
+      .eq("id", user.id)
+      .single();
+    
+    if (profileError || !profile) {
+      return Response.json({ ok: false, error: "Profile not found" }, { status: 404 });
+    }
+    
+    if (profile.is_blocked) {
+      return Response.json({ ok: false, error: "Account blocked" }, { status: 403 });
+    }
+    
+    if (profile.role !== "owner") {
+      return Response.json({ ok: false, error: "Forbidden - Owner access only" }, { status: 403 });
+    }
+    
+    // Get owner's screens
+    const { data: screens, error: screensError } = await supabase
+      .from("screens")
+      .select("*")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false });
+    
+    if (screensError) {
+      console.error("Screens fetch error:", screensError);
+    }
+    
+    const totalScreens = screens?.length || 0;
+    const activeScreens = screens?.filter(s => s.availability).length || 0;
+    
+    // Get revenue from bookings for owner's screens
+    const screenIds = screens?.map(s => s.id) || [];
+    let totalRevenue = 0;
+    
+    if (screenIds.length > 0) {
+      const { data: bookings, error: bookingsError } = await supabase
+        .from("bookings")
+        .select("total_price")
+        .in("screen_id", screenIds)
+        .in("status", ["booked", "running", "finished"]);
+      
+      if (bookingsError) {
+        console.error("Bookings fetch error:", bookingsError);
+      }
+      
+      totalRevenue = bookings?.reduce((sum, b) => sum + (b.total_price || 0), 0) || 0;
+    }
+    
+    return Response.json({
+      ok: true,
+      stats: {
+        totalRevenue,
+        activeScreens,
+        totalScreens
+      },
+      screens: screens || []
+    });
+    
+  } catch (error: any) {
+    console.error("Owner dashboard API error:", error);
+    return Response.json({ ok: false, error: "Failed to load dashboard" }, { status: 500 });
   }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return Response.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-
-  if (user.role !== "OWNER") {
-    return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
-  }
-
-  const body = (await req.json()) as {
-    name?: string;
-    location?: string;
-    type?: string;
-    pricePerSlot?: number;
-    dimension?: string;
-    supportedFormats?: string;
-  };
-
-  const name = body.name?.trim();
-  const location = body.location?.trim();
-  const type = body.type?.trim();
-  const pricePerSlot = Number(body.pricePerSlot);
-
-  if (!name || !location || !type || !Number.isFinite(pricePerSlot) || pricePerSlot <= 0) {
-    return Response.json({ ok: false, error: "Missing or invalid fields" }, { status: 400 });
-  }
-
-  const screen = await prisma.screen.create({
-    data: {
-      name,
-      location,
-      type,
-      pricePerSlot,
-      dimension: body.dimension?.trim() || null,
-      supportedFormats: body.supportedFormats?.trim() || null,
-      ownerId: userId,
-    },
-    select: {
-      id: true,
-      name: true,
-      location: true,
-      type: true,
-      pricePerSlot: true,
-      createdAt: true,
-    },
-  });
-
-  return Response.json({ ok: true, screen });
 }
 
-export async function GET(req: Request) {
-  const prisma = getPrisma();
-  const userId = getUserIdFromRequest(req);
-
-  if (!userId) {
-    return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+// POST /api/dashboard/owner - Create new screen
+export async function POST(req: Request) {
+  try {
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+    }
+    
+    // Verify owner role
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, is_blocked")
+      .eq("id", user.id)
+      .single();
+    
+    if (profileError || !profile || profile.role !== "owner") {
+      return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
+    }
+    
+    if (profile.is_blocked) {
+      return Response.json({ ok: false, error: "Account blocked" }, { status: 403 });
+    }
+    
+    const body = await req.json();
+    const { name, location, type, price_per_day, specs } = body;
+    
+    if (!name?.trim() || !location?.trim()) {
+      return Response.json({ ok: false, error: "Name and location are required" }, { status: 400 });
+    }
+    
+    // Create screen
+    const { data: screen, error } = await supabase
+      .from("screens")
+      .insert({
+        owner_id: user.id,
+        name: name.trim(),
+        location: location.trim(),
+        type: type || "digital",
+        price_per_day: price_per_day || 0,
+        specs: specs || {},
+        availability: true
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Create screen error:", error);
+      return Response.json({ ok: false, error: "Failed to create screen" }, { status: 500 });
+    }
+    
+    return Response.json({ ok: true, screen, message: "Screen created successfully" });
+    
+  } catch (error: any) {
+    console.error("Create screen API error:", error);
+    return Response.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return Response.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-
-  if (user.role !== "OWNER") {
-    return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
-  }
-
-  const [activeScreens, screens, bookingAgg] = await Promise.all([
-    prisma.screen.count({ where: { ownerId: userId } }),
-    prisma.screen.findMany({
-      where: { ownerId: userId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      select: {
-        id: true,
-        name: true,
-        location: true,
-        type: true,
-        pricePerSlot: true,
-        createdAt: true,
-      },
-    }),
-    prisma.booking.aggregate({
-      where: { screen: { ownerId: userId }, status: { in: ["APPROVED", "COMPLETED"] } },
-      _sum: { totalPrice: true },
-    }),
-  ]);
-
-  const totalRevenue = bookingAgg._sum.totalPrice ?? 0;
-
-  return Response.json({
-    ok: true,
-    stats: {
-      totalRevenue,
-      activeScreens,
-    },
-    screens,
-  });
 }

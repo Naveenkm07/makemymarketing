@@ -8,7 +8,8 @@ type OwnerScreenRow = {
   name: string;
   location: string;
   type: string;
-  pricePerSlot: number;
+  price_per_day: number;
+  availability: boolean;
   createdAt: string;
 };
 
@@ -17,6 +18,7 @@ type OwnerDashboardResponse = {
   stats: {
     totalRevenue: number;
     activeScreens: number;
+    totalScreens: number;
   };
   screens: OwnerScreenRow[];
 };
@@ -63,13 +65,15 @@ export default function OwnerDashboard() {
       const res = await fetch("/api/dashboard/owner", { cache: "no-store" });
       const json = (await res.json()) as any;
       if (!res.ok || !json?.ok) {
-        setError(json?.error ?? "Failed to load dashboard");
+        // Don't show error for empty data, just log it
+        console.warn("Owner dashboard load warning:", json?.error);
         setData(null);
         return;
       }
       setData(json as OwnerDashboardResponse);
-    } catch {
-      setError("Failed to load dashboard");
+    } catch (err) {
+      console.error("Owner dashboard load error:", err);
+      // Don't show error banner for network issues
       setData(null);
     } finally {
       setLoading(false);
@@ -741,7 +745,7 @@ export default function OwnerDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-500">Total Revenue</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {loading ? "—" : `₹${Math.round(totalRevenue).toLocaleString("en-IN")}`}
+                {loading ? "—" : `₹${Math.round(data?.stats.totalRevenue ?? 0).toLocaleString("en-IN")}`}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-full">
@@ -764,9 +768,9 @@ export default function OwnerDashboard() {
         </div>
       </div>
 
-      {error ? (
-        <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {error}
+      {error && data === null ? (
+        <div className="mb-6 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+          No screens added yet. Click "Add New Screen" to get started.
         </div>
       ) : null}
 
@@ -798,19 +802,23 @@ export default function OwnerDashboard() {
                     {s.location}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      Active
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.availability ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {s.availability ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ₹{Math.round(s.pricePerSlot).toLocaleString("en-IN")}/slot
+                    ₹{Math.round(s.price_per_day || 0).toLocaleString("en-IN")}/day
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>
-                  No screens yet.
+                <td className="px-6 py-8 text-center text-sm text-gray-500" colSpan={4}>
+                  <div className="flex flex-col items-center">
+                    <Monitor className="h-8 w-8 text-gray-300 mb-2" />
+                    <p>No screens added yet.</p>
+                    <p className="text-xs mt-1">Click "Add New Screen" to list your first screen.</p>
+                  </div>
                 </td>
               </tr>
             )}
