@@ -206,6 +206,7 @@ export default function Signup() {
           : '/dashboard/owner';
       }, 2000);
     } catch (error: any) {
+      console.error('Signup error details:', error);
       setErrors({ submit: error.message || 'Something went wrong. Please try again.' });
     } finally {
       setIsSubmitting(false);

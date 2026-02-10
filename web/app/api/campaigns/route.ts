@@ -1,101 +1,85 @@
-import { getPrisma } from "@/lib/prisma";
-import { getUserIdFromRequest } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
-  const prisma = getPrisma();
-  const prismaAny = prisma as any;
-  const userId = getUserIdFromRequest(req);
-
-  if (!userId) {
-    return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+// GET /api/campaigns - Fetch user's campaigns
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+    }
+    
+    // Fetch campaigns for this user
+    const { data: campaigns, error } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Fetch campaigns error:", error);
+      return Response.json({ ok: false, error: "Failed to load campaigns" }, { status: 500 });
+    }
+    
+    return Response.json({ ok: true, campaigns: campaigns || [] });
+    
+  } catch (error: any) {
+    console.error("Campaigns API error:", error);
+    return Response.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return Response.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-
-  if (user.role !== "ADVERTISER") {
-    return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
-  }
-
-  const campaigns = await prismaAny.campaign.findMany({
-    where: { advertiserId: userId },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      name: true,
-      startDate: true,
-      endDate: true,
-      budget: true,
-      status: true,
-      createdAt: true,
-    },
-  });
-
-  return Response.json({ ok: true, campaigns });
 }
 
+// POST /api/campaigns - Create new campaign
 export async function POST(req: Request) {
-  const prisma = getPrisma();
-  const prismaAny = prisma as any;
-  const userId = getUserIdFromRequest(req);
-
-  if (!userId) {
-    return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+  try {
+    const supabase = await createClient();
+    
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return Response.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+    }
+    
+    // Parse request body
+    const body = await req.json();
+    const { name, description, start_date, end_date, budget, target_locations } = body;
+    
+    // Validate required fields
+    if (!name?.trim()) {
+      return Response.json({ ok: false, error: "Campaign name is required" }, { status: 400 });
+    }
+    
+    // Create campaign
+    const { data: campaign, error } = await supabase
+      .from("campaigns")
+      .insert({
+        user_id: user.id,
+        name: name.trim(),
+        description,
+        start_date,
+        end_date,
+        budget: budget || 0,
+        target_locations: target_locations || [],
+        status: "draft"
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Create campaign error:", error);
+      return Response.json({ ok: false, error: "Failed to create campaign" }, { status: 500 });
+    }
+    
+    return Response.json({ ok: true, campaign, message: "Campaign created successfully" });
+    
+  } catch (error: any) {
+    console.error("Create campaign API error:", error);
+    return Response.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return Response.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-
-  if (user.role !== "ADVERTISER") {
-    return Response.json({ ok: false, error: "Forbidden" }, { status: 403 });
-  }
-
-  const body = (await req.json()) as {
-    name?: string;
-    startDate?: string;
-    endDate?: string;
-    budget?: number;
-  };
-
-  const name = body.name?.trim();
-  const budget = Number(body.budget);
-  const start = body.startDate ? new Date(body.startDate) : null;
-  const end = body.endDate ? new Date(body.endDate) : null;
-
-  if (!name || !Number.isFinite(budget) || budget <= 0 || !start || !end) {
-    return Response.json({ ok: false, error: "Missing or invalid fields" }, { status: 400 });
-  }
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end.getTime() < start.getTime()) {
-    return Response.json({ ok: false, error: "Invalid date range" }, { status: 400 });
-  }
-
-  const campaign = await prismaAny.campaign.create({
-    data: {
-      advertiserId: userId,
-      name,
-      startDate: start,
-      endDate: end,
-      budget,
-      status: "DRAFT",
-    },
-    select: {
-      id: true,
-      name: true,
-      startDate: true,
-      endDate: true,
-      budget: true,
-      status: true,
-      createdAt: true,
-    },
-  });
-
-  return Response.json({ ok: true, campaign });
 }
