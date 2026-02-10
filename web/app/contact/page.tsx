@@ -193,7 +193,7 @@ export default function Contact() {
                 <ContactInfo 
                   icon="📍"
                   title="Office"
-                  content="Bengaluru, Karnataka, India"
+                  content="#35, Patel Narayana Swamy Layout, Siddapura, Whitefield, Bengaluru – 560066, Karnataka, India"
                 />
                 
                 <ContactInfo 
