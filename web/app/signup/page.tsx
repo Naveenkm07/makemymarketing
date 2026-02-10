@@ -171,10 +171,26 @@ export default function Signup() {
     if (!validateForm() || isSubmitting) return;
     
     setIsSubmitting(true);
+    setErrors(prev => ({ ...prev, submit: '' }));
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call actual signup API
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: formData.accountType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to create account');
+      }
       
       // Success animation
       setShowSuccess(true);
@@ -184,8 +200,8 @@ export default function Signup() {
           ? '/dashboard/advertiser' 
           : '/dashboard/owner';
       }, 2000);
-    } catch (error) {
-      setErrors({ submit: 'Something went wrong. Please try again.' });
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'Something went wrong. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }

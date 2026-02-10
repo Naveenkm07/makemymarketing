@@ -17,6 +17,30 @@ sb_publishable_E8GLpqVyRWEyuuq_9GLSog_xhHPW2an
 postgresql://postgres:[YOUR-PASSWORD]@db.kspxdrhgrrghhbuzwhsj.supabase.co:5432/postgres
 ```
 
+## Email Configuration (SMTP)
+
+### Brevo SMTP Settings
+
+Configure these in Supabase Dashboard:
+
+**Sender Email:** 07naveenkm@gmail.com (or kmnaveenkm85@gmail.com)
+**Sender Name:** MakeMyMarketing
+
+**SMTP Settings:**
+- **Host:** smtp-relay.brevo.com
+- **Port:** 587
+- **Username:** a20133001@smtp-brevo.com
+- **Password:** xsmtpsib-c2a74ff30561ffb505bbb8f1bc8c605fced60760df73
+
+### Setup Steps:
+
+1. Go to https://supabase.com/dashboard/project/kspxdrhgrrghhbuzwhsj
+2. Navigate to **Authentication → Email Templates**
+3. Click **Configuration** tab
+4. Enter the SMTP credentials above
+5. Save settings
+6. Test by clicking "Send test email"
+
 ## Setup Instructions:
 
 ### 1. Update .env file
