@@ -10,11 +10,13 @@ export async function POST(req: Request) {
     email: string;
     password: string;
     name?: string;
+    company?: string;
+    phone?: string;
     role: "OWNER" | "ADVERTISER";
   };
 
   if (!body.email || !body.password || !body.role) {
-    return Response.json({ ok: false, error: "Missing fields" }, { status: 400 });
+    return Response.json({ ok: false, error: "Missing required fields" }, { status: 400 });
   }
 
   const email = body.email.trim().toLowerCase();
@@ -30,8 +32,10 @@ export async function POST(req: Request) {
       name: body.name?.trim() || null,
       role: body.role,
       passwordHash: hashPassword(body.password),
+      companyName: body.company?.trim() || null,
+      phoneNumber: body.phone?.trim() || null,
     },
-    select: { id: true, email: true, name: true, role: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, companyName: true, phoneNumber: true, createdAt: true },
   });
 
   return Response.json({ ok: true, user });
