@@ -179,8 +179,8 @@ export default function Contact() {
                 <ContactInfo 
                   icon="📧"
                   title="Email"
-                  content="hello@makemymarketing.in"
-                  link="mailto:hello@makemymarketing.in"
+                  content="naveen@makemymarketing.in"
+                  link="mailto:naveen@makemymarketing.in"
                 />
                 
                 <ContactInfo 
