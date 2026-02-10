@@ -50,29 +50,46 @@ export default function Hero3D() {
     }
   }, [mouseX, mouseY]);
 
-  // Transform values for parallax layers
-  const bgX = useTransform(mouseX, [-0.5, 0.5], [30, -30]);
-  const bgY = useTransform(mouseY, [-0.5, 0.5], [30, -30]);
+  // Transform values for parallax layers - CLAMPED to prevent cards going off-screen
+  const bgX = useTransform(mouseX, [-0.5, 0.5], [20, -20]);
+  const bgY = useTransform(mouseY, [-0.5, 0.5], [20, -20]);
   
-  const gradientX = useTransform(mouseX, [-0.5, 0.5], [20, -20]);
-  const gradientY = useTransform(mouseY, [-0.5, 0.5], [20, -20]);
+  const gradientX = useTransform(mouseX, [-0.5, 0.5], [15, -15]);
+  const gradientY = useTransform(mouseY, [-0.5, 0.5], [15, -15]);
   
-  const headlineX = useTransform(mouseX, [-0.5, 0.5], [10, -10]);
-  const headlineY = useTransform(mouseY, [-0.5, 0.5], [10, -10]);
-  const headlineRotateX = useTransform(mouseY, [-0.5, 0.5], [5, -5]);
-  const headlineRotateY = useTransform(mouseX, [-0.5, 0.5], [-5, 5]);
+  const headlineX = useTransform(mouseX, [-0.5, 0.5], [8, -8]);
+  const headlineY = useTransform(mouseY, [-0.5, 0.5], [8, -8]);
+  const headlineRotateX = useTransform(mouseY, [-0.5, 0.5], [3, -3]);
+  const headlineRotateY = useTransform(mouseX, [-0.5, 0.5], [-3, 3]);
   
-  const ctaX = useTransform(mouseX, [-0.5, 0.5], [15, -15]);
-  const ctaY = useTransform(mouseY, [-0.5, 0.5], [15, -15]);
+  const ctaX = useTransform(mouseX, [-0.5, 0.5], [10, -10]);
+  const ctaY = useTransform(mouseY, [-0.5, 0.5], [10, -10]);
   
-  const statsX = useTransform(mouseX, [-0.5, 0.5], [8, -8]);
-  const statsY = useTransform(mouseY, [-0.5, 0.5], [25, -25]);
+  const statsX = useTransform(mouseX, [-0.5, 0.5], [5, -5]);
+  const statsY = useTransform(mouseY, [-0.5, 0.5], [15, -15]);
+  
+  // Card transforms - more restricted to stay in viewport
+  const card1X = useTransform(mouseX, [-0.5, 0.5], [-15, 15]);
+  const card1Y = useTransform(mouseY, [-0.5, 0.5], [-15, 15]);
+  const card1RotateX = useTransform(mouseY, [-0.5, 0.5], [5, -5]);
+  const card1RotateY = useTransform(mouseX, [-0.5, 0.5], [-5, 5]);
+  
+  const card2X = useTransform(mouseX, [-0.5, 0.5], [10, -10]);
+  const card2Y = useTransform(mouseY, [-0.5, 0.5], [10, -10]);
+  const card2RotateX = useTransform(mouseY, [-0.5, 0.5], [-4, 4]);
+  const card2RotateY = useTransform(mouseX, [-0.5, 0.5], [4, -4]);
+  
+  const glowX = useTransform(mouseX, [-0.5, 0.5], [-20, 20]);
+  const glowY = useTransform(mouseY, [-0.5, 0.5], [-20, 20]);
 
   return (
     <div
       ref={containerRef}
-      className="relative min-h-screen w-full overflow-hidden"
-      style={{ perspective: '1000px' }}
+      className="relative min-h-screen w-full"
+      style={{ 
+        perspective: '1000px',
+        overflow: 'visible',
+      }}
       onPointerMove={handleMouseMove}
       onPointerEnter={() => setIsHovering(true)}
       onPointerLeave={() => {
@@ -87,13 +104,14 @@ export default function Hero3D() {
         style={{ transformStyle: 'preserve-3d' }}
       >
         
-        {/* Background Particles Layer - Slow movement */}
+        {/* Background Particles Layer - Slow movement - z-index: 1 */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
           style={{
             x: bgX,
             y: bgY,
             translateZ: '-100px',
+            zIndex: 1,
           }}
         >
           {[...Array(20)].map((_, i) => (
@@ -108,21 +126,22 @@ export default function Hero3D() {
           ))}
         </motion.div>
 
-        {/* Gradient Overlays - Medium movement */}
+        {/* Gradient Overlays - Medium movement - z-index: 2 */}
         <motion.div
           className="absolute inset-0"
           style={{
             x: gradientX,
             y: gradientY,
             translateZ: '-50px',
+            zIndex: 2,
           }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.2),_transparent_60%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(168,139,250,0.15),_transparent_60%)]" />
         </motion.div>
 
-        {/* Main Content Container */}
-        <div className="relative z-10 mx-auto max-w-7xl px-6 pt-32 pb-20">
+        {/* Main Content Container - z-index: 10 */}
+        <div className="relative z-10 mx-auto max-w-7xl px-6 pt-32 pb-20" style={{ zIndex: 10 }}>
           <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
             
             {/* Left Content with 3D Headline */}
@@ -281,20 +300,22 @@ export default function Hero3D() {
               </motion.div>
             </div>
 
-            {/* Right Side - 3D Canvas placeholder or visual element */}
-            <div className="hidden lg:block relative h-[500px]">
-              {/* Decorative 3D floating cards */}
+            {/* Right Side - 3D Canvas placeholder or visual element - z-index: 20 */}
+            <div className="hidden lg:block relative h-[500px]" style={{ zIndex: 20 }}>
+              {/* Decorative 3D floating cards - with constrained transforms */}
               <motion.div
-                className="absolute top-10 right-10 w-64 h-40 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-xl border border-white/20 p-6"
+                className="absolute top-10 right-10 w-64 h-40 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-xl border border-white/20 p-6 shadow-2xl"
                 style={{
-                  x: useTransform(mouseX, [-0.5, 0.5], [-20, 20]),
-                  y: useTransform(mouseY, [-0.5, 0.5], [-20, 20]),
-                  rotateX: useTransform(mouseY, [-0.5, 0.5], [10, -10]),
-                  rotateY: useTransform(mouseX, [-0.5, 0.5], [-10, 10]),
-                  translateZ: '80px',
+                  x: card1X,
+                  y: card1Y,
+                  rotateX: card1RotateX,
+                  rotateY: card1RotateY,
+                  translateZ: '40px',
+                  zIndex: 30,
+                  willChange: 'transform',
                 }}
                 animate={{
-                  y: [0, -20, 0],
+                  y: [0, -15, 0],
                 }}
                 transition={{
                   y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
@@ -305,16 +326,18 @@ export default function Hero3D() {
               </motion.div>
 
               <motion.div
-                className="absolute bottom-20 left-10 w-56 h-36 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl border border-white/20 p-6"
+                className="absolute bottom-20 left-10 w-56 h-36 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl border border-white/20 p-6 shadow-2xl"
                 style={{
-                  x: useTransform(mouseX, [-0.5, 0.5], [15, -15]),
-                  y: useTransform(mouseY, [-0.5, 0.5], [15, -15]),
-                  rotateX: useTransform(mouseY, [-0.5, 0.5], [-8, 8]),
-                  rotateY: useTransform(mouseX, [-0.5, 0.5], [8, -8]),
-                  translateZ: '60px',
+                  x: card2X,
+                  y: card2Y,
+                  rotateX: card2RotateX,
+                  rotateY: card2RotateY,
+                  translateZ: '30px',
+                  zIndex: 25,
+                  willChange: 'transform',
                 }}
                 animate={{
-                  y: [0, -15, 0],
+                  y: [0, -12, 0],
                 }}
                 transition={{
                   y: { duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 },
@@ -325,10 +348,12 @@ export default function Hero3D() {
               </motion.div>
 
               <motion.div
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 blur-3xl"
+                className="absolute top-1/2 left-1/2 w-48 h-48 rounded-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 blur-3xl pointer-events-none"
                 style={{
-                  x: useTransform(mouseX, [-0.5, 0.5], [-30, 30]),
-                  y: useTransform(mouseY, [-0.5, 0.5], [-30, 30]),
+                  x: glowX,
+                  y: glowY,
+                  zIndex: 15,
+                  willChange: 'transform',
                 }}
               />
             </div>
