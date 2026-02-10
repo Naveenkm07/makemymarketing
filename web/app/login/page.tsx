@@ -234,19 +234,38 @@ export default function Login() {
     if (!validateForm() || isSubmitting) return;
     
     setIsSubmitting(true);
+    setErrors({});
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Redirect to appropriate dashboard
-      window.location.href = '/dashboard/advertiser';
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        // Redirect to appropriate dashboard based on role
+        const dashboardUrl = data.user.role === 'owner' 
+          ? '/dashboard/owner' 
+          : '/dashboard/advertiser';
+        window.location.href = dashboardUrl;
+      } else {
+        setErrors({ submit: data.error || 'Invalid email or password' });
+      }
     } catch (error) {
-      setErrors({ submit: 'Invalid email or password' });
+      console.error('Login error:', error);
+      setErrors({ submit: 'Network error. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
-  }, [validateForm, isSubmitting]);
+  }, [validateForm, isSubmitting, formData.email, formData.password]);
 
   // Toggle password visibility - stable handler
   const togglePasswordVisibility = useCallback(() => {

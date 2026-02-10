@@ -1,10 +1,9 @@
-import { getPrisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const prisma = getPrisma();
+  const supabase = await createClient();
 
   const body = (await req.json()) as {
     email: string;
@@ -12,7 +11,7 @@ export async function POST(req: Request) {
     name?: string;
     company?: string;
     phone?: string;
-    role: "OWNER" | "ADVERTISER";
+    role: "advertiser" | "owner";
   };
 
   if (!body.email || !body.password || !body.role) {
@@ -20,23 +19,50 @@ export async function POST(req: Request) {
   }
 
   const email = body.email.trim().toLowerCase();
+  const name = body.name?.trim() || "";
+  const company = body.company?.trim() || "";
+  const phone = body.phone?.trim() || "";
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return Response.json({ ok: false, error: "Email already exists" }, { status: 409 });
-  }
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      name: body.name?.trim() || null,
-      role: body.role,
-      passwordHash: hashPassword(body.password),
-      companyName: body.company?.trim() || null,
-      phoneNumber: body.phone?.trim() || null,
+  // Sign up with Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password: body.password,
+    options: {
+      data: {
+        name,
+        company,
+        phone,
+        role: body.role,
+      },
     },
-    select: { id: true, email: true, name: true, role: true, companyName: true, phoneNumber: true, createdAt: true },
   });
 
-  return Response.json({ ok: true, user });
+  if (authError) {
+    console.error("Supabase signup error:", authError);
+    
+    // Handle specific error cases
+    if (authError.message.includes("User already registered")) {
+      return Response.json({ ok: false, error: "Email already exists" }, { status: 409 });
+    }
+    
+    return Response.json({ ok: false, error: authError.message }, { status: 500 });
+  }
+
+  if (!authData.user) {
+    return Response.json({ ok: false, error: "Failed to create user" }, { status: 500 });
+  }
+
+  // Return success - profile is created automatically via trigger
+  return Response.json({ 
+    ok: true, 
+    user: {
+      id: authData.user.id,
+      email: authData.user.email,
+      name,
+      role: body.role,
+      company,
+      phone,
+    },
+    message: "Please check your email to verify your account."
+  });
 }

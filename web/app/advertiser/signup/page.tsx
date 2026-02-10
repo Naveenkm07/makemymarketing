@@ -82,7 +82,7 @@ export default function AdvertiserSignup() {
           company: formData.company.trim(),
           phone: formData.phone.trim(),
           password: formData.password,
-          role: 'ADVERTISER'
+          role: 'advertiser'
         })
       });
 
