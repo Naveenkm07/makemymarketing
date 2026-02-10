@@ -1,10 +1,9 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 export default function Signup() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -17,32 +16,16 @@ export default function Signup() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 2 - 1,
-        y: (e.clientY / window.innerHeight) * 2 - 1,
-      });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  // Password strength calculation
-  useEffect(() => {
-    if (formData.password) {
-      let strength = 0;
-      if (formData.password.length >= 8) strength += 25;
-      if (/[A-Z]/.test(formData.password)) strength += 25;
-      if (/[0-9]/.test(formData.password)) strength += 25;
-      if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
-      setPasswordStrength(strength);
-    } else {
-      setPasswordStrength(0);
-    }
+  // Password strength - derived value, not state
+  const passwordStrength = useMemo(() => {
+    if (!formData.password) return 0;
+    let strength = 0;
+    if (formData.password.length >= 8) strength += 25;
+    if (/[A-Z]/.test(formData.password)) strength += 25;
+    if (/[0-9]/.test(formData.password)) strength += 25;
+    if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
+    return strength;
   }, [formData.password]);
 
   const validateField = (name: string, value: string) => {
@@ -271,26 +254,13 @@ export default function Signup() {
         <FloatingShapes />
       </div>
       
-      {/* Interactive Mouse Glow - already has pointer-events-none */}
-      <motion.div
-        className="absolute w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none z-0"
-        animate={{
-          x: mousePosition.x * 50,
-          y: mousePosition.y * 50,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 50,
-          damping: 20,
-        }}
-      />
-      
       {/* Back to Home - higher z-index and pointer-events-auto for clickability */}
       <div className="relative z-20 pt-8 px-6 pointer-events-auto">
         <Link 
           href="/" 
           className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
         >
+// ... (rest of the code remains the same)
           <motion.div
             whileHover={{ x: -3 }}
             className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
