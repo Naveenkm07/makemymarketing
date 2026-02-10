@@ -3,6 +3,100 @@ import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
+// Move FloatingShapes outside component to prevent recreation
+const FloatingShapes = React.memo(function FloatingShapes() {
+  const shapes = React.useMemo(() => {
+    return [...Array(15)].map((_, i) => ({
+      id: i,
+      left: 5 + (i * 47) % 90,
+      top: 10 + (i * 23) % 80,
+      duration: 8 + (i * 31) % 4,
+      delay: (i * 17) % 5,
+    }));
+  }, []);
+
+  return (
+    <>
+      {shapes.map((shape) => (
+        <motion.div
+          key={shape.id}
+          className="absolute w-2 h-2 rounded-full bg-blue-400/30"
+          style={{ left: `${shape.left}%`, top: `${shape.top}%` }}
+          animate={{ y: [0, -100, 0], opacity: [0, 1, 0] }}
+          transition={{ duration: shape.duration, repeat: Infinity, delay: shape.delay }}
+        />
+      ))}
+    </>
+  );
+});
+
+// Move FormField outside component
+interface FormFieldProps {
+  label: string;
+  type?: string;
+  name: string;
+  value: string;
+  passwordVisible?: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onBlur?: () => void;
+  error?: string;
+  showError?: boolean;
+  children?: React.ReactNode;
+}
+
+const FormField = React.memo(function FormField({ 
+  label, 
+  type = 'text', 
+  name, 
+  value, 
+  passwordVisible = false,
+  onChange, 
+  onBlur,
+  error,
+  showError,
+  children 
+}: FormFieldProps) {
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          type={type === 'password' && passwordVisible ? 'text' : type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          className={`w-full px-4 py-4 bg-gray-800/30 border rounded-xl text-white placeholder-transparent focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-300 backdrop-blur-sm ${
+            showError && error 
+              ? 'border-red-400 focus:ring-red-500' 
+              : 'border-white/20 focus:ring-blue-500'
+          }`}
+          placeholder={label}
+        />
+        <label 
+          className={`absolute left-4 transition-all duration-300 pointer-events-none ${
+            value 
+              ? '-top-2.5 text-xs text-blue-400 bg-gray-900 px-1' 
+              : 'top-4 text-white/70'
+          }`}
+        >
+          {label}
+        </label>
+        {children}
+      </div>
+      <div className="min-h-[24px] mt-1">
+        {showError && error && (
+          <p className="text-red-400 text-sm flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+});
+
 export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -97,116 +191,6 @@ export default function Signup() {
     }
   };
 
-  const FloatingShapes = () => (
-    <>
-      {[...Array(15)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 rounded-full bg-blue-400/30"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            y: [0, -100, 0],
-            opacity: [0, 1, 0],
-            x: [0, Math.random() * 50 - 25, 0],
-          }}
-          transition={{
-            duration: 8 + Math.random() * 4,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-      
-      {/* Light beams */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={`beam-${i}`}
-          className="absolute w-px h-32 bg-gradient-to-b from-blue-400/20 to-transparent"
-          style={{
-            left: `${10 + i * 15}%`,
-            top: `${Math.random() * 30}%`,
-          }}
-          animate={{
-            opacity: [0.3, 0.8, 0.3],
-            y: [0, -20, 0],
-          }}
-          transition={{
-            duration: 3 + Math.random() * 2,
-            repeat: Infinity,
-            delay: Math.random() * 2,
-          }}
-        />
-      ))}
-    </>
-  );
-
-  const FormField = ({ 
-    label, 
-    type = 'text', 
-    name, 
-    value, 
-    onChange, 
-    onBlur,
-    error,
-    showError,
-    children 
-  }: { 
-    label: string; 
-    type?: string; 
-    name: string; 
-    value: string; 
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; 
-    onBlur?: () => void;
-    error?: string;
-    showError?: boolean;
-    children?: React.ReactNode;
-  }) => (
-    <div className="relative">
-      <div className="relative">
-        <input
-          type={type === 'password' && passwordVisible ? 'text' : type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          className={`w-full px-4 py-4 bg-gray-800/30 border rounded-xl text-white placeholder-transparent focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-300 backdrop-blur-sm ${
-            showError && error 
-              ? 'border-red-400 focus:ring-red-500' 
-              : 'border-white/20 focus:ring-blue-500'
-          }`}
-          placeholder={label}
-        />
-        <label 
-          className={`absolute left-4 transition-all duration-300 pointer-events-none ${
-            value 
-              ? '-top-2.5 text-xs text-blue-400 bg-gray-900 px-1' 
-              : 'top-4 text-white/70'
-          }`}
-        >
-          {label}
-        </label>
-        
-        {children}
-      </div>
-      
-      {/* Reserved space for error - prevents layout jump */}
-      <div className="min-h-[24px] mt-1">
-        {showError && error && (
-          <p className="text-red-400 text-sm flex items-center gap-2 animate-fadeIn">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {error}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-purple-950 text-white overflow-hidden flex items-center justify-center">
@@ -260,7 +244,6 @@ export default function Signup() {
           href="/" 
           className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
         >
-// ... (rest of the code remains the same)
           <motion.div
             whileHover={{ x: -3 }}
             className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
@@ -345,8 +328,9 @@ export default function Signup() {
                 {/* Password visibility toggle */}
                 <button
                   type="button"
+                  tabIndex={-1}
                   className="absolute right-4 top-4 text-white/50 hover:text-white transition-colors"
-                  onClick={() => setPasswordVisible(!passwordVisible)}
+                  onClick={() => setPasswordVisible(v => !v)}
                 >
                   {passwordVisible ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -360,24 +344,22 @@ export default function Signup() {
                   )}
                 </button>
                 
-                {/* Password strength meter */}
+                {/* Simple password strength - no animation */}
                 {formData.password && (
                   <div className="mt-3">
                     <div className="flex justify-between text-xs text-white/60 mb-1">
                       <span>Password Strength</span>
-                      <span>
+                      <span className={passwordStrength < 50 ? 'text-red-400' : passwordStrength < 75 ? 'text-yellow-400' : 'text-green-400'}>
                         {passwordStrength < 50 ? 'Weak' : passwordStrength < 75 ? 'Medium' : 'Strong'}
                       </span>
                     </div>
                     <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full rounded-full ${
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
                           passwordStrength < 50 ? 'bg-red-500' : 
                           passwordStrength < 75 ? 'bg-yellow-500' : 'bg-green-500'
                         }`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${passwordStrength}%` }}
-                        transition={{ duration: 0.5 }}
+                        style={{ width: `${passwordStrength}%` }}
                       />
                     </div>
                   </div>
