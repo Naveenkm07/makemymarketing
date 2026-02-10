@@ -338,7 +338,7 @@ export default function Signup() {
             transition={{ duration: 0.3 }}
           >
             {/* 3D Depth Effect */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gray-800/20 to-gray-900/20 transform translate-y-2 blur-sm" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gray-800/20 to-gray-900/20 transform translate-y-2 blur-sm pointer-events-none" />
             
             <form onSubmit={handleSubmit} className="relative space-y-6 pointer-events-auto">
               <FormField
