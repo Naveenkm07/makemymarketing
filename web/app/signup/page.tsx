@@ -175,6 +175,8 @@ export default function Signup() {
     
     try {
       // Call actual signup API
+      console.log('Submitting signup...', { email: formData.email, name: formData.name, role: formData.accountType });
+      
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -186,7 +188,10 @@ export default function Signup() {
         }),
       });
 
+      console.log('Response status:', response.status);
+      
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!data.ok) {
         throw new Error(data.error || 'Failed to create account');
