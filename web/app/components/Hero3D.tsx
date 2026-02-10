@@ -65,9 +65,6 @@ export default function Hero3D() {
   const ctaX = useTransform(mouseX, [-0.5, 0.5], [10, -10]);
   const ctaY = useTransform(mouseY, [-0.5, 0.5], [10, -10]);
   
-  const statsX = useTransform(mouseX, [-0.5, 0.5], [5, -5]);
-  const statsY = useTransform(mouseY, [-0.5, 0.5], [15, -15]);
-  
   // Card transforms - more restricted to stay in viewport
   const card1X = useTransform(mouseX, [-0.5, 0.5], [-15, 15]);
   const card1Y = useTransform(mouseY, [-0.5, 0.5], [-15, 15]);
@@ -269,20 +266,13 @@ export default function Hero3D() {
                 </motion.div>
               </motion.div>
 
-              {/* Stats with vertical parallax */}
-              <motion.div
-                className="mt-12 flex gap-8"
-                style={{
-                  x: statsX,
-                  y: statsY,
-                  translateZ: '10px',
-                }}
-              >
+              {/* Stats section - NO parallax, stable positioning */}
+              <div className="mt-12 flex gap-8 relative z-20">
                 {[
                   { value: '70+', label: 'SCREENS LIVE' },
                   { value: '50+', label: 'CAMPAIGNS RUN' },
                   { value: 'Bengaluru', label: 'CITIES' },
-                ].map((stat, i) => (
+                ].map((stat) => (
                   <motion.div
                     key={stat.label}
                     className="text-center"
@@ -297,7 +287,7 @@ export default function Hero3D() {
                     </div>
                   </motion.div>
                 ))}
-              </motion.div>
+              </div>
             </div>
 
             {/* Right Side - 3D Canvas placeholder or visual element - z-index: 20 */}
