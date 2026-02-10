@@ -943,9 +943,11 @@ function City() {
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const headerRef = useRef<HTMLHeadElement>(null);
   
   useEffect(() => {
+    setIsClient(true);
     if (typeof window !== 'undefined') {
       const handleScroll = () => {
         setIsScrolled(window.scrollY > 10);
@@ -1145,10 +1147,12 @@ export default function Home() {
             </motion.div>
           </div>
           <div className="relative h-[520px] rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-            <Canvas camera={{ position: [8, 6, 10], fov: 40 }}>
-              <City />
-              <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.4} />
-            </Canvas>
+            {isClient && (
+              <Canvas camera={{ position: [8, 6, 10], fov: 40 }}>
+                <City />
+                <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.4} />
+              </Canvas>
+            )}
           </div>
         </div>
       </section>
