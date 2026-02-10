@@ -9,10 +9,85 @@ interface MousePosition {
   y: number;
 }
 
+interface StatConfig {
+  id: string;
+  label: string;
+  value: number | string;
+  prefix?: string;
+  suffix?: string;
+  isNumeric: boolean;
+}
+
+// MVP Stats Configuration - Real early-stage metrics
+const STATS_CONFIG: StatConfig[] = [
+  { id: 'screens', label: 'ACTIVE SCREENS', value: 70, suffix: '+', isNumeric: true },
+  { id: 'campaigns', label: 'CAMPAIGNS', value: 50, suffix: '+', isNumeric: true },
+  { id: 'revenue', label: 'REVENUE', value: '₹0.0 Cr', isNumeric: false },
+];
+
+// 3D Floating Cards Configuration
+const FLOATING_CARDS_CONFIG = [
+  { id: 'screens-card', label: 'Digital Screens', value: 70, suffix: '+', position: 'top' as const },
+  { id: 'campaigns-card', label: 'Active Campaigns', value: 50, suffix: '+', position: 'bottom' as const },
+];
+
+// Custom hook for count-up animation - runs once on mount
+function useCountUp(targetValue: number, duration: number = 2000, delay: number = 0) {
+  const [count, setCount] = useState(0);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
+
+    let startTime: number | null = null;
+    let animationFrame: number;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime - delay;
+
+      if (elapsed < 0) {
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
+
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentValue = Math.floor(easeOut * targetValue);
+
+      setCount(currentValue);
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      } else {
+        setCount(targetValue);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [targetValue, duration, delay]);
+
+  return count;
+}
+
 export default function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
+
+  // Pre-compute animated stat values - each stat gets its count value
+  const animatedScreens = useCountUp(70, 2000, 0);
+  const animatedCampaigns = useCountUp(50, 2000, 200);
+  const animatedCardScreens = useCountUp(70, 2000, 500);
+  const animatedCardCampaigns = useCountUp(50, 2000, 700);
 
   // Smooth spring animation for mouse movement
   const springConfig = { stiffness: 150, damping: 15, mass: 0.1 };
@@ -266,35 +341,54 @@ export default function Hero3D() {
                 </motion.div>
               </motion.div>
 
-              {/* Stats section - NO parallax, stable positioning */}
+              {/* Stats section - Real MVP data with count-up animation */}
               <div className="mt-12 flex gap-8 relative z-20">
-                {[
-                  { value: '70+', label: 'SCREENS LIVE' },
-                  { value: '50+', label: 'CAMPAIGNS RUN' },
-                  { value: 'Bengaluru', label: 'CITIES' },
-                ].map((stat) => (
-                  <motion.div
-                    key={stat.label}
-                    className="text-center"
-                    whileHover={{ y: -5, scale: 1.05 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                  >
-                    <div className="text-3xl md:text-4xl font-bold text-white mb-1">
-                      {stat.value}
-                    </div>
-                    <div className="text-xs md:text-sm text-white/60 uppercase tracking-wider">
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                ))}
+                <motion.div
+                  className="text-center"
+                  whileHover={{ y: -5, scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                >
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">
+                    {animatedScreens}+
+                  </div>
+                  <div className="text-xs md:text-sm text-white/60 uppercase tracking-wider">
+                    ACTIVE SCREENS
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  className="text-center"
+                  whileHover={{ y: -5, scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                >
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">
+                    {animatedCampaigns}+
+                  </div>
+                  <div className="text-xs md:text-sm text-white/60 uppercase tracking-wider">
+                    CAMPAIGNS
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  className="text-center"
+                  whileHover={{ y: -5, scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                >
+                  <div className="text-3xl md:text-4xl font-bold text-white mb-1">
+                    ₹0.0 Cr
+                  </div>
+                  <div className="text-xs md:text-sm text-white/60 uppercase tracking-wider">
+                    REVENUE
+                  </div>
+                </motion.div>
               </div>
             </div>
 
             {/* Right Side - 3D Canvas placeholder or visual element - z-index: 20 */}
             <div className="hidden lg:block relative h-[500px]" style={{ zIndex: 20 }}>
-              {/* Decorative 3D floating cards - with constrained transforms */}
+              {/* Decorative 3D floating cards - Real MVP data with count-up */}
               <motion.div
-                className="absolute top-10 right-10 w-64 h-40 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-xl border border-white/20 p-6 shadow-2xl"
+                className="absolute top-10 right-10 w-48 h-28 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-xl border border-white/20 p-4 shadow-2xl"
                 style={{
                   x: card1X,
                   y: card1Y,
@@ -311,12 +405,12 @@ export default function Hero3D() {
                   y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
                 }}
               >
-                <div className="text-cyan-400 text-3xl font-bold">70+</div>
+                <div className="text-cyan-400 text-2xl font-bold">{animatedCardScreens}+</div>
                 <div className="text-white/80 text-sm mt-1">Digital Screens</div>
               </motion.div>
 
               <motion.div
-                className="absolute bottom-20 left-10 w-56 h-36 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl border border-white/20 p-6 shadow-2xl"
+                className="absolute bottom-20 left-10 w-48 h-28 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl border border-white/20 p-4 shadow-2xl"
                 style={{
                   x: card2X,
                   y: card2Y,
@@ -333,7 +427,7 @@ export default function Hero3D() {
                   y: { duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 },
                 }}
               >
-                <div className="text-purple-400 text-3xl font-bold">50+</div>
+                <div className="text-purple-400 text-2xl font-bold">{animatedCardCampaigns}+</div>
                 <div className="text-white/80 text-sm mt-1">Active Campaigns</div>
               </motion.div>
 
