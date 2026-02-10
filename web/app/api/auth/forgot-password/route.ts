@@ -22,8 +22,24 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("Password reset error:", error);
+    
+    // Check for specific error messages
+    if (error.message.includes("User not found") || error.message.includes("not found")) {
+      return Response.json(
+        { ok: false, error: "No account found with this email address." },
+        { status: 404 }
+      );
+    }
+    
+    if (error.message.includes("rate limit") || error.message.includes("rateLimit")) {
+      return Response.json(
+        { ok: false, error: "Too many attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+    
     return Response.json(
-      { ok: false, error: "Failed to send reset email. Please try again." },
+      { ok: false, error: error.message || "Failed to send reset email. Please try again." },
       { status: 500 }
     );
   }
