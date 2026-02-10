@@ -222,60 +222,152 @@ export default function Support() {
                     Our support team typically responds within 2 hours during business hours. 
                     For urgent matters, use our WhatsApp support for immediate assistance.
                   </p>
-                  <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4">
-                    <p className="text-cyan-300 text-sm">
-                      💡 Pro Tip: Include your campaign ID or account email when contacting support for faster resolution.
-                    </p>
-                  </div>
                 </div>
               </div>
             </motion.div>
           )}
-          
-          {activeTab === 'resources' && (
-            <div className="grid md:grid-cols-3 gap-6">
+        
+        {activeTab === 'resources' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="relative"
+          >
+            {/* Section Intro */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-4">
+                Self-Service Resources
+              </h2>
+              <p className="text-white/70 max-w-2xl mx-auto">
+                Explore our comprehensive guides, best practices, and technical specifications to maximize your DOOH success.
+              </p>
+            </motion.div>
+
+            {/* Resource Cards Grid */}
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {[
                 {
                   title: "Getting Started Guide",
-                  description: "Complete walkthrough for new advertisers and screen owners",
+                  description: "Complete walkthrough for new advertisers and screen owners.",
                   icon: "🚀",
-                  link: "#"
+                  link: "/support/getting-started",
+                  color: "from-cyan-500 to-blue-500",
+                  glowColor: "rgba(34,211,238,0.3)"
                 },
                 {
                   title: "Campaign Best Practices",
-                  description: "Tips for creating high-performing DOOH campaigns",
+                  description: "Tips for creating high-performing DOOH campaigns.",
                   icon: "🎯",
-                  link: "#"
+                  link: "/support/best-practices",
+                  color: "from-purple-500 to-pink-500",
+                  glowColor: "rgba(168,85,247,0.3)"
                 },
                 {
                   title: "Technical Specifications",
-                  description: "File requirements, formats, and creative guidelines",
+                  description: "File formats, sizes, and creative guidelines.",
                   icon: "📐",
-                  link: "#"
+                  link: "/support/technical-specs",
+                  color: "from-blue-500 to-cyan-500",
+                  glowColor: "rgba(59,130,246,0.3)"
                 }
               ].map((resource, index) => (
                 <motion.div
-                  key={index}
-                  className="bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-cyan-400/30 transition-all duration-300 group cursor-pointer"
-                  initial={{ opacity: 0, y: 20 }}
+                  key={resource.title}
+                  initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ y: -5 }}
+                  transition={{ duration: 0.6, delay: index * 0.15 }}
+                  whileHover={{ y: -15, scale: 1.02 }}
+                  className="relative group"
                 >
-                  <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">{resource.icon}</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{resource.title}</h3>
-                  <p className="text-white/80 mb-4">{resource.description}</p>
-                  <div className="text-cyan-400 font-medium group-hover:translate-x-1 transition-transform inline-block">
-                    Learn More →
-                  </div>
+                  <Link href={resource.link} className="block">
+                    {/* Glow Effect */}
+                    <div
+                      className="absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                      style={{ background: `radial-gradient(circle at center, ${resource.glowColor} 0%, transparent 70%)` }}
+                    />
+
+                    {/* Card */}
+                    <div className="relative bg-gray-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:border-white/40 transition-all duration-500 h-full overflow-hidden">
+                      {/* Gradient Background on Hover */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${resource.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+
+                      {/* 3D Icon Container */}
+                      <motion.div
+                        className={`relative w-20 h-20 rounded-2xl bg-gradient-to-br ${resource.color} flex items-center justify-center mb-6 shadow-lg`}
+                        animate={{ rotate: [0, 5, -5, 0], y: [0, -5, 0] }}
+                        transition={{ duration: 4, repeat: Infinity, delay: index * 0.5 }}
+                        whileHover={{ scale: 1.1, rotate: 0 }}
+                      >
+                        {/* Glow behind icon */}
+                        <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${resource.color} blur-lg opacity-50`} />
+                        <span className="relative text-4xl z-10">{resource.icon}</span>
+                      </motion.div>
+
+                      {/* Content */}
+                      <h3 className="text-xl font-semibold text-white mb-3 relative z-10">
+                        {resource.title}
+                      </h3>
+                      <p className="text-white/70 mb-6 relative z-10">
+                        {resource.description}
+                      </p>
+
+                      {/* Learn More Button */}
+                      <motion.div
+                        className="inline-flex items-center gap-2 text-cyan-400 font-medium relative z-10"
+                        whileHover={{ x: 5 }}
+                      >
+                        <span>Learn More</span>
+                        <motion.svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </motion.svg>
+                      </motion.div>
+
+                      {/* Corner Decoration */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full" />
+                    </div>
+                  </Link>
                 </motion.div>
               ))}
             </div>
-          )}
-        </motion.div>
-      </main>
-    </div>
-  );
+
+            {/* Additional Help CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-16 text-center"
+            >
+              <p className="text-white/60 mb-4">Cannot find what you are looking for?</p>
+              <button
+                onClick={() => setActiveTab('contact')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-300"
+              >
+                <span>Contact Support</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </motion.div>
+    </main>
+  </div>
+);
 }
 
 function ContactItem({ icon, title, content, link }: { 
