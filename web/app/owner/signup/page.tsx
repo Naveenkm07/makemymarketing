@@ -167,7 +167,7 @@ export default function OwnerSignup() {
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 className="w-full px-4 py-3 bg-gray-800/50 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                placeholder="+91 98765 43210"
+                placeholder="+91 9611185435"
                 required
               />
             </div>

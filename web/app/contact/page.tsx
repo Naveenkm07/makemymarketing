@@ -186,8 +186,8 @@ export default function Contact() {
                 <ContactInfo 
                   icon="📱"
                   title="Phone"
-                  content="+91 98765 43210"
-                  link="tel:+919876543210"
+                  content="+91 9611185435"
+                  link="tel:+919611185435"
                 />
                 
                 <ContactInfo 

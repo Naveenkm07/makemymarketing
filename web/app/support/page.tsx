@@ -205,8 +205,8 @@ export default function Support() {
                     <ContactItem 
                       icon="📱" 
                       title="WhatsApp" 
-                      content="+91 98765 43210" 
-                      link="https://wa.me/919876543210"
+                      content="+91 9611185435" 
+                      link="https://wa.me/919611185435"
                     />
                     <ContactItem 
                       icon="🕒" 
