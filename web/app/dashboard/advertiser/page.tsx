@@ -1,8 +1,35 @@
 "use client";
 
-import { Search, MapPin, BarChart3, IndianRupee } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Search, MapPin, BarChart3, IndianRupee, Megaphone } from "lucide-react";
+import { useEffect, useState } from "react";
 
+// Matches /api/advertiser/dashboard response format
+type CampaignRow = {
+  id: string;
+  name: string;
+  status: string;
+  budget: number;
+  start_date: string | null;
+  end_date: string | null;
+};
+
+type AvailableScreenRow = {
+  id: string;
+  screen_name: string;
+  location: string;
+  rate: number;
+  screen_type: string;
+};
+
+type AdvertiserDashboardResponse = {
+  totalCampaigns: number;
+  totalBookings: number;
+  totalSpend: number;
+  campaigns: CampaignRow[];
+  availableScreens: AvailableScreenRow[];
+};
+
+// Legacy type for booking modal (still uses /api/screens)
 type InventoryItem = {
   id: string;
   name: string;
@@ -12,32 +39,54 @@ type InventoryItem = {
   owner: { id: string; name: string | null; companyName: string | null };
 };
 
-type AdvertiserDashboardResponse = {
-  ok: true;
-  stats: {
-    totalCampaigns: number;
-    activeCampaigns: number;
-    totalBudget: number;
-    totalBookings: number;
-    availableScreens: number;
-    recentCampaigns: Campaign[];
-  };
-};
+// Skeleton components
+function SkeletonCard() {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+          <div className="h-8 bg-gray-200 rounded w-32" />
+        </div>
+        <div className="h-12 w-12 bg-gray-200 rounded-full" />
+      </div>
+    </div>
+  );
+}
 
-type Campaign = {
-  id: string;
-  name: string;
-  start_date: string;
-  end_date: string;
-  budget: number;
-  status: string;
-  description?: string;
-};
+function SkeletonTableRow() {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32" /></td>
+      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-28" /></td>
+      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20" /></td>
+      <td className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
+    </tr>
+  );
+}
 
-type CampaignListResponse = {
-  ok: true;
-  campaigns: Campaign[];
-};
+function SkeletonScreenCard() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+      <div className="h-5 bg-gray-200 rounded w-36 mb-2" />
+      <div className="h-4 bg-gray-200 rounded w-28 mb-2" />
+      <div className="h-3 bg-gray-200 rounded w-20 mb-4" />
+      <div className="flex justify-between items-center">
+        <div className="h-5 bg-gray-200 rounded w-24" />
+        <div className="h-8 bg-gray-200 rounded w-20" />
+      </div>
+    </div>
+  );
+}
+
+function statusBadgeClass(status: string) {
+  switch (status) {
+    case "active": return "bg-green-100 text-green-800";
+    case "completed": return "bg-blue-100 text-blue-800";
+    case "cancelled": return "bg-red-100 text-red-800";
+    default: return "bg-yellow-100 text-yellow-800";
+  }
+}
 
 export default function AdvertiserDashboard() {
   const [loading, setLoading] = useState(true);
@@ -45,9 +94,7 @@ export default function AdvertiserDashboard() {
   const [data, setData] = useState<AdvertiserDashboardResponse | null>(null);
   const [q, setQ] = useState("");
 
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignError, setCampaignError] = useState<string | null>(null);
-  const [campaignLoading, setCampaignLoading] = useState(true);
 
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -78,52 +125,36 @@ export default function AdvertiserDashboard() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  async function load(query: string) {
+  async function load() {
     setError(null);
+    setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (query.trim()) params.set("q", query.trim());
-      if (filterStart) params.set("start", filterStart);
-      if (filterEnd) params.set("end", filterEnd);
-      const url = `/api/dashboard/advertiser?${params.toString()}`;
-      const res = await fetch(url, { cache: "no-store" });
-      const json = (await res.json()) as any;
-      if (!res.ok || !json?.ok) {
-        // Don't show error for empty data, just log it
-        console.warn("Dashboard load warning:", json?.error);
+      const res = await fetch("/api/advertiser/dashboard", { cache: "no-store" });
+
+      if (res.status === 401 || res.status === 403) {
+        console.warn("Advertiser dashboard: not authorized");
         setData(null);
         return;
       }
-      setData(json as AdvertiserDashboardResponse);
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        console.error("Advertiser dashboard API error:", json?.error);
+        setError(json?.error || "Failed to load dashboard");
+        return;
+      }
+
+      const json = (await res.json()) as AdvertiserDashboardResponse;
+      setData(json);
     } catch (err) {
-      console.error("Dashboard load error:", err);
-      // Don't show error banner for network issues on initial load
-      setData(null);
+      console.error("Advertiser dashboard load error:", err);
+      setError("Network error. Please check your connection.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadCampaigns() {
-    setCampaignError(null);
-    try {
-      const res = await fetch("/api/campaigns", { cache: "no-store" });
-      const json = (await res.json()) as any;
-      if (!res.ok || !json?.ok) {
-        // Gracefully handle errors - show empty state instead of error
-        console.warn("Campaigns load warning:", json?.error);
-        setCampaigns([]);
-        return;
-      }
-      const d = json as { campaigns: Campaign[] };
-      setCampaigns(d.campaigns ?? []);
-    } catch (err) {
-      console.error("Campaigns load error:", err);
-      setCampaigns([]);
-    } finally {
-      setCampaignLoading(false);
-    }
-  }
+  // loadCampaigns is no longer needed — unified into load() via /api/advertiser/dashboard
 
   async function loadCurrentUser() {
     try {
@@ -264,7 +295,7 @@ export default function AdvertiserDashboard() {
       setStartDate("");
       setEndDate("");
       setBudget("");
-      await loadCampaigns();
+      await load();
     } catch {
       setCampaignError("Failed to create campaign");
     } finally {
@@ -314,15 +345,7 @@ export default function AdvertiserDashboard() {
   }
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      void load(q);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [q, filterStart, filterEnd]);
-
-  useEffect(() => {
-    void load("");
-    void loadCampaigns();
+    void load();
     void loadCurrentUser();
     void loadChatThreads();
     void loadScreens();
@@ -331,7 +354,7 @@ export default function AdvertiserDashboard() {
   useEffect(() => {
     const es = new EventSource("/api/realtime?topics=bookings,availability,chat");
     const onEvt = () => {
-      void load(q);
+      void load();
       void loadChatThreads();
     };
     es.addEventListener("bookings", onEvt);
@@ -344,7 +367,7 @@ export default function AdvertiserDashboard() {
         // ignore
       }
     };
-  }, [q]);
+  }, []);
 
   async function loadScreens() {
     try {
@@ -566,11 +589,10 @@ export default function AdvertiserDashboard() {
                     <li key={thread.id}>
                       <button
                         onClick={() => void openChatThread(thread.id)}
-                        className={`w-full text-left p-2 rounded border ${
-                          selectedThreadId === thread.id
-                            ? "bg-indigo-50 border-indigo-300"
-                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                        }`}
+                        className={`w-full text-left p-2 rounded border ${selectedThreadId === thread.id
+                          ? "bg-indigo-50 border-indigo-300"
+                          : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                          }`}
                       >
                         <div className="text-sm font-medium text-gray-900">
                           {thread.participants.find((p: any) => p.id !== currentUser?.id)?.name ||
@@ -599,16 +621,14 @@ export default function AdvertiserDashboard() {
                         {chatMessages.map((msg) => (
                           <li
                             key={msg.id}
-                            className={`text-sm ${
-                              msg.senderId === currentUser?.id ? "text-right" : "text-left"
-                            }`}
+                            className={`text-sm ${msg.senderId === currentUser?.id ? "text-right" : "text-left"
+                              }`}
                           >
                             <div
-                              className={`inline-block px-3 py-2 rounded-lg ${
-                                msg.senderId === currentUser?.id
-                                  ? "bg-indigo-100 text-indigo-900"
-                                  : "bg-white text-gray-900"
-                              }`}
+                              className={`inline-block px-3 py-2 rounded-lg ${msg.senderId === currentUser?.id
+                                ? "bg-indigo-100 text-indigo-900"
+                                : "bg-white text-gray-900"
+                                }`}
                             >
                               {msg.content}
                             </div>
@@ -745,74 +765,103 @@ export default function AdvertiserDashboard() {
         </div>
       </div>
 
-      {error ? (
-        <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {error}
+      {/* ─── ERROR BANNER ─── */}
+      {error && !loading ? (
+        <div className="mb-6 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-4 py-3 flex items-center gap-2">
+          <span>⚠️</span>
+          <span>{error}</span>
+          <button onClick={() => void load()} className="ml-auto text-red-600 hover:text-red-800 underline text-xs">
+            Retry
+          </button>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Bookings</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? "—" : (data?.stats.totalBookings ?? 0)}
-              </p>
+      {/* ─── STAT CARDS ─── */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Campaigns</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {data?.totalCampaigns ?? 0}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Megaphone className="h-6 w-6 text-purple-600" />
+              </div>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <BarChart3 className="h-6 w-6 text-blue-600" />
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Spend</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  ₹{Math.round(data?.totalSpend ?? 0).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <IndianRupee className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Bookings</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {data?.totalBookings ?? 0}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <BarChart3 className="h-6 w-6 text-blue-600" />
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Spend</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? "—" : `₹${Math.round(data?.stats.totalBudget ?? 0).toLocaleString("en-IN")}`}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <IndianRupee className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* ─── CAMPAIGNS TABLE ─── */}
       <h2 className="text-lg font-medium text-gray-900 mb-4">Your Campaigns</h2>
       <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden mb-8">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campaign</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {campaignLoading ? (
-              <tr>
-                <td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>
-                  Loading campaigns...
-                </td>
-              </tr>
-            ) : campaigns.length > 0 ? (
-              campaigns.map((c) => (
-                <tr key={c.id}>
+            {loading ? (
+              <>
+                <SkeletonTableRow />
+                <SkeletonTableRow />
+                <SkeletonTableRow />
+              </>
+            ) : data && data.campaigns.length > 0 ? (
+              data.campaigns.map((c) => (
+                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {c.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(c.start_date).toLocaleDateString()} – {new Date(c.end_date).toLocaleDateString()}
+                    {c.start_date ? new Date(c.start_date).toLocaleDateString() : "—"}
+                    {" – "}
+                    {c.end_date ? new Date(c.end_date).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ₹{Math.round(c.budget).toLocaleString("en-IN")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadgeClass(c.status)}`}>
                       {c.status}
                     </span>
                   </td>
@@ -820,8 +869,12 @@ export default function AdvertiserDashboard() {
               ))
             ) : (
               <tr>
-                <td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>
-                  No campaigns yet.
+                <td className="px-6 py-8 text-center text-sm text-gray-500" colSpan={4}>
+                  <div className="flex flex-col items-center">
+                    <Megaphone className="h-8 w-8 text-gray-300 mb-2" />
+                    <p>No campaigns yet.</p>
+                    <p className="text-xs mt-1">Click &quot;Create New Campaign&quot; to get started.</p>
+                  </div>
                 </td>
               </tr>
             )}
@@ -829,28 +882,36 @@ export default function AdvertiserDashboard() {
         </table>
       </div>
 
+      {/* ─── AVAILABLE SCREENS GRID ─── */}
       <h2 className="text-lg font-medium text-gray-900 mb-4">Available Screens</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full text-sm text-gray-500">Loading screens...</div>
-        ) : inventory.length > 0 ? (
-          inventory.map((s) => (
-            <div key={s.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <>
+            <SkeletonScreenCard />
+            <SkeletonScreenCard />
+            <SkeletonScreenCard />
+            <SkeletonScreenCard />
+            <SkeletonScreenCard />
+            <SkeletonScreenCard />
+          </>
+        ) : data && data.availableScreens.length > 0 ? (
+          data.availableScreens.map((s) => (
+            <div key={s.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-base font-medium text-gray-900">{s.name}</h3>
+                <div className="w-full">
+                  <h3 className="text-base font-medium text-gray-900">{s.screen_name}</h3>
                   <div className="flex items-center mt-1 text-sm text-gray-500">
-                    <MapPin className="h-4 w-4 mr-1" />
+                    <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
                     {s.location}
                   </div>
-                  <div className="mt-2 text-xs text-gray-500">{s.type}</div>
+                  <div className="mt-2 text-xs text-gray-500">{s.screen_type}</div>
                   <div className="mt-4 flex justify-between items-center">
                     <span className="text-indigo-600 font-bold">
-                      ₹{Math.round(s.pricePerSlot).toLocaleString("en-IN")}
-                      <span className="text-gray-500 font-normal text-xs">/slot</span>
+                      ₹{Math.round(s.rate).toLocaleString("en-IN")}
+                      <span className="text-gray-500 font-normal text-xs">/day</span>
                     </span>
                     <button
-                      onClick={() => openBooking(s)}
+                      onClick={() => openBooking({ id: s.id, name: s.screen_name, location: s.location, type: s.screen_type, pricePerSlot: s.rate, owner: { id: '', name: null, companyName: null } })}
                       className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-100"
                     >
                       Book Now
@@ -867,7 +928,10 @@ export default function AdvertiserDashboard() {
             </div>
           ))
         ) : (
-          <div className="col-span-full text-sm text-gray-500">No screens found.</div>
+          <div className="col-span-full py-8 text-center">
+            <MapPin className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No screens available at the moment.</p>
+          </div>
         )}
       </div>
     </div>

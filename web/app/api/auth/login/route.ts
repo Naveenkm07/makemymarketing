@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   }
 
   // Check if user is blocked
-  if (profile?.is_blocked) {
+  if ((profile as any)?.is_blocked) {
     await supabase.auth.signOut();
     return Response.json({ ok: false, error: "Account has been blocked" }, { status: 403 });
   }
@@ -53,11 +53,11 @@ export async function POST(req: Request) {
     user: {
       id: authData.user.id,
       email: authData.user.email,
-      name: profile?.name || "",
-      role: profile?.role || "advertiser",
-      company: profile?.company || "",
-      phone: profile?.phone || "",
-      isVerified: profile?.is_verified || false,
+      name: (profile as any)?.name || "",
+      role: (profile as any)?.role || "advertiser",
+      company: (profile as any)?.company || "",
+      phone: (profile as any)?.phone || "",
+      isVerified: (profile as any)?.is_verified || false,
     },
   });
 }

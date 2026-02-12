@@ -42,6 +42,30 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Protect Admin routes
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+
+    // Role verification
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    // @ts-ignore
+    if (!profile || profile.role !== 'admin') {
+      // Redirect unauthorized users to 404 or dashboard
+      const url = request.nextUrl.clone()
+      url.pathname = '/404' // Obscure admin existence
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Redirect authenticated users away from login/signup pages
   if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') && user) {
     const url = request.nextUrl.clone()

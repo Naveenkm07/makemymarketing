@@ -3,25 +3,46 @@
 import { Plus, BarChart, Monitor } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+// Matches /api/owner/dashboard response format
 type OwnerScreenRow = {
   id: string;
-  name: string;
+  screen_name: string;
   location: string;
-  type: string;
-  price_per_day: number;
-  availability: boolean;
-  createdAt: string;
+  status: "active" | "inactive";
+  rate: number;
 };
 
 type OwnerDashboardResponse = {
-  ok: true;
-  stats: {
-    totalRevenue: number;
-    activeScreens: number;
-    totalScreens: number;
-  };
+  totalRevenue: number;
+  activeScreens: number;
   screens: OwnerScreenRow[];
 };
+
+// Skeleton loader component
+function SkeletonCard() {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+          <div className="h-8 bg-gray-200 rounded w-32" />
+        </div>
+        <div className="h-12 w-12 bg-gray-200 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonTableRow() {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32" /></td>
+      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-28" /></td>
+      <td className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-16" /></td>
+      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20" /></td>
+    </tr>
+  );
+}
 
 export default function OwnerDashboard() {
   const [loading, setLoading] = useState(true);
@@ -61,20 +82,29 @@ export default function OwnerDashboard() {
 
   async function load() {
     setError(null);
+    setLoading(true);
     try {
-      const res = await fetch("/api/dashboard/owner", { cache: "no-store" });
-      const json = (await res.json()) as any;
-      if (!res.ok || !json?.ok) {
-        // Don't show error for empty data, just log it
-        console.warn("Owner dashboard load warning:", json?.error);
+      const res = await fetch("/api/owner/dashboard", { cache: "no-store" });
+
+      if (res.status === 401 || res.status === 403) {
+        // Auth/role issues - don't show as dashboard error
+        console.warn("Owner dashboard: not authorized");
         setData(null);
         return;
       }
-      setData(json as OwnerDashboardResponse);
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        console.error("Owner dashboard API error:", json?.error);
+        setError(json?.error || "Failed to load dashboard");
+        return;
+      }
+
+      const json = (await res.json()) as OwnerDashboardResponse;
+      setData(json);
     } catch (err) {
       console.error("Owner dashboard load error:", err);
-      // Don't show error banner for network issues
-      setData(null);
+      setError("Network error. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -298,10 +328,8 @@ export default function OwnerDashboard() {
     };
   }, []);
 
-  const totalRevenue = useMemo(() => {
-    const v = data?.stats.totalRevenue ?? 0;
-    return v;
-  }, [data]);
+  const totalRevenue = data?.totalRevenue ?? 0;
+  const activeScreenCount = data?.activeScreens ?? 0;
 
   return (
     <div>
@@ -468,7 +496,7 @@ export default function OwnerDashboard() {
                 <option value="">Choose a screen</option>
                 {data?.screens.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} – {s.location}
+                    {s.screen_name} – {s.location}
                   </option>
                 ))}
               </select>
@@ -580,11 +608,10 @@ export default function OwnerDashboard() {
                     <li key={thread.id}>
                       <button
                         onClick={() => void openChatThread(thread.id)}
-                        className={`w-full text-left p-2 rounded border ${
-                          selectedThreadId === thread.id
-                            ? "bg-indigo-50 border-indigo-300"
-                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                        }`}
+                        className={`w-full text-left p-2 rounded border ${selectedThreadId === thread.id
+                          ? "bg-indigo-50 border-indigo-300"
+                          : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                          }`}
                       >
                         <div className="text-sm font-medium text-gray-900">
                           {thread.participants.find((p: any) => p.role !== "OWNER")?.name ||
@@ -613,16 +640,14 @@ export default function OwnerDashboard() {
                         {chatMessages.map((msg) => (
                           <li
                             key={msg.id}
-                            className={`text-sm ${
-                              msg.senderId === currentUser?.id ? "text-right" : "text-left"
-                            }`}
+                            className={`text-sm ${msg.senderId === currentUser?.id ? "text-right" : "text-left"
+                              }`}
                           >
                             <div
-                              className={`inline-block px-3 py-2 rounded-lg ${
-                                msg.senderId === currentUser?.id
-                                  ? "bg-indigo-100 text-indigo-900"
-                                  : "bg-white text-gray-900"
-                              }`}
+                              className={`inline-block px-3 py-2 rounded-lg ${msg.senderId === currentUser?.id
+                                ? "bg-indigo-100 text-indigo-900"
+                                : "bg-white text-gray-900"
+                                }`}
                             >
                               {msg.content}
                             </div>
@@ -739,41 +764,69 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? "—" : `₹${Math.round(data?.stats.totalRevenue ?? 0).toLocaleString("en-IN")}`}
-              </p>
+      {/* ─── STAT CARDS ─── */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  ₹{Math.round(totalRevenue).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <BarChart className="h-6 w-6 text-green-600" />
+              </div>
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <BarChart className="h-6 w-6 text-green-600" />
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Active Screens</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {activeScreenCount}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Monitor className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Screens</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {data?.screens.length ?? 0}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Monitor className="h-6 w-6 text-purple-600" />
+              </div>
             </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Active Screens</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {loading ? "—" : (data?.stats.activeScreens ?? 0)}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Monitor className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {error && data === null ? (
-        <div className="mb-6 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-          No screens added yet. Click "Add New Screen" to get started.
+      {/* ─── ERROR BANNER (only for real failures) ─── */}
+      {error && !loading ? (
+        <div className="mb-6 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-4 py-3 flex items-center gap-2">
+          <span>⚠️</span>
+          <span>{error}</span>
+          <button onClick={() => void load()} className="ml-auto text-red-600 hover:text-red-800 underline text-xs">
+            Retry
+          </button>
         </div>
       ) : null}
 
+      {/* ─── SCREENS TABLE ─── */}
       <h2 className="text-lg font-medium text-gray-900 mb-4">My Screens</h2>
       <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -787,27 +840,27 @@ export default function OwnerDashboard() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
-              <tr>
-                <td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>
-                  Loading...
-                </td>
-              </tr>
+              <>
+                <SkeletonTableRow />
+                <SkeletonTableRow />
+                <SkeletonTableRow />
+              </>
             ) : data && data.screens.length > 0 ? (
               data.screens.map((s) => (
-                <tr key={s.id}>
+                <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {s.name}
+                    {s.screen_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {s.location}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.availability ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {s.availability ? 'Active' : 'Inactive'}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {s.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ₹{Math.round(s.price_per_day || 0).toLocaleString("en-IN")}/day
+                    ₹{Math.round(s.rate || 0).toLocaleString("en-IN")}/day
                   </td>
                 </tr>
               ))
@@ -817,7 +870,7 @@ export default function OwnerDashboard() {
                   <div className="flex flex-col items-center">
                     <Monitor className="h-8 w-8 text-gray-300 mb-2" />
                     <p>No screens added yet.</p>
-                    <p className="text-xs mt-1">Click "Add New Screen" to list your first screen.</p>
+                    <p className="text-xs mt-1">Click &quot;Add New Screen&quot; to list your first screen.</p>
                   </div>
                 </td>
               </tr>
