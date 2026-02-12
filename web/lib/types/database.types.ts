@@ -150,6 +150,27 @@ export interface TicketMessage {
   created_at: string;
 }
 
+export interface Device {
+  id: string;
+  device_id: string;
+  screen_id?: string | null;
+  pairing_code?: string;
+  status: string;
+  token?: string;
+  ip_address?: string;
+  last_seen?: string;
+  created_at?: string;
+}
+
+export interface DeviceLog {
+  id: string;
+  device_id: string;
+  level: string;
+  message: string;
+  metadata?: any;
+  created_at: string;
+}
+
 // Insert types (for creating new records)
 export type ProfileInsert = Omit<Profile, 'id' | 'created_at' | 'updated_at'>;
 export type ScreenInsert = Omit<Screen, 'id' | 'created_at' | 'updated_at'>;
@@ -163,6 +184,8 @@ export type AdminAuditLogInsert = Omit<AdminAuditLog, 'id' | 'created_at'>;
 export type SettingInsert = Omit<Setting, 'updated_at'>;
 export type TicketInsert = Omit<Ticket, 'id' | 'created_at' | 'updated_at'>;
 export type TicketMessageInsert = Omit<TicketMessage, 'id' | 'created_at'>;
+export type DeviceInsert = Omit<Device, 'id' | 'created_at'>;
+export type DeviceLogInsert = Omit<DeviceLog, 'id' | 'created_at'>;
 
 // Update types (for updating existing records)
 // Update types (for updating existing records)
@@ -176,7 +199,14 @@ export type OwnerBankAccountUpdate = Partial<Omit<OwnerBankAccount, 'id' | 'crea
 export type AdminAuditLogUpdate = never; // Audit logs are immutable
 export type SettingUpdate = Partial<Omit<Setting, 'updated_at'>>;
 export type TicketUpdate = Partial<Omit<Ticket, 'id' | 'created_at'>>;
-export type TicketMessageUpdate = never; // Messages are immutable
+export interface TicketMessageUpdate {
+  ticket_id?: string;
+  sender_id?: string;
+  message?: string;
+  is_internal?: boolean;
+}
+export type DeviceUpdate = Partial<Omit<Device, 'id' | 'device_id' | 'created_at'>>;
+export type DeviceLogUpdate = never; // Device logs are immutable
 
 // Database interface for type-safe queries
 export interface Database {
@@ -241,6 +271,16 @@ export interface Database {
         Row: TicketMessage;
         Insert: TicketMessageInsert;
         Update: TicketMessageUpdate;
+      };
+      devices: {
+        Row: Device;
+        Insert: DeviceInsert;
+        Update: DeviceUpdate;
+      };
+      device_logs: {
+        Row: DeviceLog;
+        Insert: DeviceLogInsert;
+        Update: DeviceLogUpdate;
       };
     };
     Views: {

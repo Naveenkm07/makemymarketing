@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, ArrowRight } from "lucide-react";
 
-export default function BookingSuccess() {
+import { Suspense } from "react";
+
+function BookingSuccessContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get("session_id");
@@ -71,5 +73,13 @@ export default function BookingSuccess() {
                 </button>
             </div>
         </div>
+    );
+}
+
+export default function BookingSuccess() {
+    return (
+        <Suspense fallback={<div className="text-center py-20">Loading...</div>}>
+            <BookingSuccessContent />
+        </Suspense>
     );
 }

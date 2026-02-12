@@ -14,7 +14,9 @@ type ScreenDetail = {
     availability: boolean;
 };
 
-export default function BookingForm() {
+import { Suspense } from "react";
+
+function BookingFormContent() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -376,5 +378,13 @@ export default function BookingForm() {
                 </div>
             </form>
         </div>
+    );
+}
+
+export default function BookingForm() {
+    return (
+        <Suspense fallback={<div className="max-w-2xl mx-auto py-12 text-center">Loading booking form...</div>}>
+            <BookingFormContent />
+        </Suspense>
     );
 }

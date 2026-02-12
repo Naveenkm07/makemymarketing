@@ -83,14 +83,14 @@ export async function GET() {
         // ─── 3. FETCH CAMPAIGNS ───
         const { data: campaigns, error: campaignsError } = await supabase
             .from("campaigns")
-            .select("id, name, status, budget, start_date, end_date")
+            .select("*")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false });
 
         if (campaignsError) {
             console.error("Advertiser dashboard: campaigns error", campaignsError.message);
             return NextResponse.json(
-                { error: "Failed to load campaigns" },
+                { error: `Failed to load campaigns: ${campaignsError.message}` },
                 { status: 500 }
             );
         }

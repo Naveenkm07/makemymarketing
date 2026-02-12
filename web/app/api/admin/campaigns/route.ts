@@ -50,8 +50,8 @@ export async function POST(req: Request) {
         if (action === "resume") updates.moderation_status = "approved";
         if (action === "cancel") updates.status = "cancelled";
 
-        const { error: updateError } = await supabase
-            .from("campaigns")
+        const { error: updateError } = await (supabase
+            .from("campaigns") as any)
             .update(updates)
             .eq("id", campaignId);
 

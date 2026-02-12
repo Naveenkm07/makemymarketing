@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 
 export async function sendEmail({
     to,
@@ -12,7 +14,7 @@ export async function sendEmail({
     html: string;
 }) {
     try {
-        if (!process.env.RESEND_API_KEY) {
+        if (!resend) {
             console.warn("RESEND_API_KEY missing. Email skipped:", subject);
             return { success: false, error: "Missing API Key" };
         }

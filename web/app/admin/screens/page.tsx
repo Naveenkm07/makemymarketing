@@ -49,8 +49,72 @@ export default function ScreensPage() {
         }
     };
 
+    const [pairingScreenId, setPairingScreenId] = useState<string | null>(null);
+    const [pairingCodeInput, setPairingCodeInput] = useState("");
+    const [pairingLoading, setPairingLoading] = useState(false);
+
+    const handlePair = async () => {
+        if (!pairingScreenId || !pairingCodeInput) return;
+        setPairingLoading(true);
+        try {
+            const res = await fetch("/api/iot/pair", {
+                method: "POST",
+                body: JSON.stringify({ screenId: pairingScreenId, pairingCode: pairingCodeInput }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert("Device Paired Successfully!");
+                setPairingScreenId(null);
+                setPairingCodeInput("");
+            } else {
+                alert(data.error || "Pairing Failed");
+            }
+        } catch (err) {
+            alert("Network Error");
+        } finally {
+            setPairingLoading(false);
+        }
+    };
+
     return (
         <div>
+            {/* Pairing Modal */}
+            {pairingScreenId && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+                    <div className="bg-gray-900 border border-gray-700 p-8 rounded-2xl max-w-md w-full">
+                        <h2 className="text-xl font-bold text-white mb-4">Pair Screen Device</h2>
+                        <p className="text-gray-400 mb-6 text-sm">
+                            Enter the 6-digit code displayed on the TV screen.
+                        </p>
+
+                        <input
+                            type="text"
+                            className="w-full bg-black border border-gray-700 text-white text-3xl font-mono text-center tracking-widest py-4 rounded-lg mb-6 focus:border-indigo-500 focus:outline-none uppercase"
+                            placeholder="000000"
+                            maxLength={6}
+                            value={pairingCodeInput}
+                            onChange={(e) => setPairingCodeInput(e.target.value)}
+                        />
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setPairingScreenId(null)}
+                                className="flex-1 py-3 text-gray-400 hover:text-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePair}
+                                disabled={pairingLoading}
+                                className="flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-bold"
+                            >
+                                {pairingLoading ? "Pairing..." : "Link Device"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-white">Screen Approvals</h1>
                 <select
@@ -59,7 +123,7 @@ export default function ScreensPage() {
                     onChange={(e) => setFilter(e.target.value)}
                 >
                     <option value="pending">Pending Review</option>
-                    <option value="verified">Verified</option>
+                    <option value="verified">Verified (Ready to Pair)</option>
                     <option value="all">All Screens</option>
                 </select>
             </div>
@@ -73,7 +137,7 @@ export default function ScreensPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {screens.map(screen => (
-                        <div key={screen.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors">
+                        <div key={screen.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors relative">
                             <div className="h-40 bg-gray-800 flex items-center justify-center text-gray-600">
                                 {/* Placeholder for screen image */}
                                 <span className="text-xs font-mono uppercase">Screen Preview</span>
@@ -102,12 +166,20 @@ export default function ScreensPage() {
 
                                 <div className="flex gap-2">
                                     {screen.is_verified ? (
-                                        <button
-                                            onClick={() => handleAction(screen.id, "reject")} // Un-verify
-                                            className="w-full py-2 bg-gray-800 text-gray-400 text-xs rounded hover:bg-gray-700 transition"
-                                        >
-                                            Revoke Approval
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => setPairingScreenId(screen.id)}
+                                                className="flex-1 py-2 bg-indigo-600/20 border border-indigo-600/50 text-indigo-400 text-xs rounded hover:bg-indigo-600/30 transition"
+                                            >
+                                                ⚡ Pair Device
+                                            </button>
+                                            <button
+                                                onClick={() => handleAction(screen.id, "reject")} // Un-verify
+                                                className="px-3 py-2 bg-gray-800 text-gray-400 text-xs rounded hover:bg-gray-700 transition"
+                                            >
+                                                Revoke
+                                            </button>
+                                        </>
                                     ) : (
                                         <>
                                             <button

@@ -19,9 +19,17 @@ type PlaybackLog = {
     duration: number;
 };
 
+import { useIoT } from "@/lib/iot-client";
+import { useSearchParams } from "next/navigation";
+
 export default function WebPlayer() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const screenId = params.screenId as string;
+    const isIoT = searchParams.get("mode") === "iot";
+
+    // IoT Hook (only used if isIoT, but hooks must run unconditionally)
+    const { schedule: iotSchedule, status: iotStatus } = useIoT();
 
     const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -31,11 +39,33 @@ export default function WebPlayer() {
 
     // Logging buffer
     const logsBufferRef = useRef<PlaybackLog[]>([]);
-    // To avoid double logging due to strict mode or re-renders
     const lastLogTimeRef = useRef<number>(0);
 
     // ─── 1. FETCH PLAYLIST ───
     const fetchPlaylist = useCallback(async () => {
+        if (isIoT) {
+            // IoT Mode: Use schedule from hook (offline capable)
+            if (iotSchedule.length > 0) {
+                // Map IoT schedule to PlaylistItem
+                const mapped = iotSchedule.map((s: any) => ({
+                    bookingId: s.id,
+                    campaignId: "iot-campaign", // placeholder
+                    mediaUrl: s.url,
+                    duration: s.duration,
+                    type: s.type
+                }));
+                setPlaylist(mapped);
+                setLoading(false);
+                setError(null);
+            } else if (iotStatus === 'offline') {
+                // Hook handles local storage fallback
+                setLoading(false);
+                // If empty, keep waiting or show default
+            }
+            return;
+        }
+
+        // Web Mode: Fetch from API
         try {
             console.log("Fetching playlist...");
             const res = await fetch(`/api/player/playlist?screenId=${screenId}`);
@@ -54,14 +84,15 @@ export default function WebPlayer() {
         } finally {
             setLoading(false);
         }
-    }, [screenId]);
+    }, [screenId, isIoT, iotSchedule, iotStatus]);
 
-    // Initial load + Polling every 5 minutes
+    // Initial load + Polling
     useEffect(() => {
         fetchPlaylist();
-        const interval = setInterval(fetchPlaylist, 5 * 60 * 1000);
+        // Poll less frequently in IoT mode (heartbeat handles it)
+        const interval = setInterval(fetchPlaylist, isIoT ? 60000 : 5 * 60 * 1000);
         return () => clearInterval(interval);
-    }, [fetchPlaylist]);
+    }, [fetchPlaylist, isIoT]);
 
 
     // ─── 2. REPORT LOGS ───
@@ -72,18 +103,40 @@ export default function WebPlayer() {
         logsBufferRef.current = []; // Clear buffer immediately
 
         try {
-            await fetch("/api/player/report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ logs: logsToSend }),
-            });
+            if (isIoT) {
+                // IoT Mode: Send to /api/iot/logs via IoTClient or fetch directly
+                // We need to sign this with device token. 
+                // Ideally use IoTClient.reportLogs(). 
+                // For now, let's just fetch directly assuming we can get config again or just send to api/iot/logs?
+                // Wait, api/iot/logs needs token.
+                // Let's use localStorage to get config.
+                const config = JSON.parse(localStorage.getItem("dooh_device_config") || "{}");
+                if (config.token) {
+                    await fetch("/api/iot/logs", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            deviceId: config.deviceId,
+                            token: config.token,
+                            logs: logsToSend.map(l => ({
+                                type: 'playback',
+                                ...l
+                            }))
+                        })
+                    });
+                }
+            } else {
+                await fetch("/api/player/report", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ logs: logsToSend }),
+                });
+            }
             console.log(`Reported ${logsToSend.length} logs`);
         } catch (err) {
             console.error("Failed to report logs, restoring buffer");
-            // Restore logs to buffer in case of failure (simple retry)
             logsBufferRef.current = [...logsToSend, ...logsBufferRef.current];
         }
-    }, []);
+    }, [isIoT]);
 
     // Flush every 30 seconds
     useEffect(() => {

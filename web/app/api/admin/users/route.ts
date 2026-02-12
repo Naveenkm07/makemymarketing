@@ -48,8 +48,8 @@ export async function POST(req: Request) {
 
         const updates = { is_blocked: action === "block" };
 
-        const { error: updateError } = await supabase
-            .from("profiles")
+        const { error: updateError } = await (supabase
+            .from("profiles") as any)
             .update(updates)
             .eq("id", userId);
 
